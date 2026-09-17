@@ -43,7 +43,7 @@
                         <x-heroicon-o-chevron-down class="h-4 w-4"/>
                     </summary>
                     <div class="absolute right-0 z-50 mt-2 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-                        <a href="/profile" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <a href="{{ route('profile') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                             <x-heroicon-o-cog-6-tooth class="h-5 w-5"/>
                             Profile
                         </a>
@@ -65,9 +65,34 @@
     </div>
 </nav>
 
-<main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-    @yield('content')
+<main>
+    <div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+        @if (trim($__env->yieldContent('page-title')))
+            <div class="mb-8 flex items-start justify-between gap-4 px-2">
+                <div>
+                    <h1 class="text-3xl font-semibold tracking-tight text-gray-900">
+                        @yield('page-title')
+                    </h1>
+
+                    @if (trim($__env->yieldContent('page-subtitle')))
+                        <p class="mt-1 text-base font-medium text-gray-600">
+                            @yield('page-subtitle')
+                        </p>
+                    @endif
+                </div>
+
+                @hasSection('page-actions')
+                    <div class="shrink-0">
+                        @yield('page-actions')
+                    </div>
+                @endif
+            </div>
+        @endif
+
+        @yield('content')
+    </div>
 </main>
 
+    @stack('scripts')
 </body>
 </html>

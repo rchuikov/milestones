@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\View\View;
 
-class AuthController extends Controller
+final class AuthController extends Controller
 {
     public function showLogin(): View
     {
