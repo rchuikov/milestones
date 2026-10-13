@@ -11,7 +11,8 @@ function getMilestoneDuration(startedAt) {
 
     if (Temporal.ZonedDateTime.compare(start, now) > 0) {
         return {
-            duration: '00:00:00',
+            duration: '',
+            time: '00:00:00',
             totalDays: 0,
         };
     }
@@ -48,16 +49,15 @@ function getMilestoneDuration(startedAt) {
         );
     }
 
-    parts.push(
-        [
-            duration.hours.toString().padStart(2, '0'),
-            duration.minutes.toString().padStart(2, '0'),
-            duration.seconds.toString().padStart(2, '0'),
-        ].join(':')
-    );
+    const time = [
+        duration.hours.toString().padStart(2, '0'),
+        duration.minutes.toString().padStart(2, '0'),
+        duration.seconds.toString().padStart(2, '0'),
+    ].join(':');
 
     return {
         duration: parts.join(' '),
+        time,
         totalDays,
     };
 }
@@ -65,15 +65,39 @@ function getMilestoneDuration(startedAt) {
 function updateMilestoneTimers() {
     document.querySelectorAll('.milestone-timer').forEach(timer => {
         const result = getMilestoneDuration(timer.dataset.startedAt);
+        const container = timer.parentElement;
 
-        timer.textContent = result.duration;
+        timer.textContent = result.time;
 
-        const totalDays = timer.parentElement.querySelector('.milestone-total-days');
+        const duration = container.querySelector('.milestone-duration');
 
-        totalDays.textContent = `(${result.totalDays} ${result.totalDays === 1 ? 'day' : 'days'})`;
+        if (duration) {
+            duration.textContent = result.duration;
+            duration.classList.toggle('hidden', ! result.duration);
+        }
+
+        const totalDays = container.querySelector('.milestone-total-days');
+
+        if (totalDays) {
+            totalDays.textContent =
+                `(${result.totalDays} ${result.totalDays === 1 ? 'day' : 'days'})`;
+        }
     });
+}
+
+let currentDate = Temporal.Now.plainDateISO().toString();
+
+function reloadOnDateChange() {
+    const today = Temporal.Now.plainDateISO().toString();
+
+    if (today !== currentDate) {
+        window.location.reload();
+    }
 }
 
 updateMilestoneTimers();
 
-setInterval(updateMilestoneTimers, 1000);
+setInterval(() => {
+    updateMilestoneTimers();
+    reloadOnDateChange();
+}, 1000);

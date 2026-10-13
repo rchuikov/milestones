@@ -20,6 +20,10 @@
         </div>
     @endif
 
+    @include('milestones._today-anniversaries', [
+        'milestones' => $milestones,
+    ])
+
     <div class="space-y-4">
         @forelse ($milestones as $milestone)
             @php
@@ -28,7 +32,7 @@
             @endphp
 
             <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                <div class="flex flex-col gap-6 sm:grid sm:h-26 sm:grid-cols-[1fr_auto] sm:gap-8">
+                <div class="flex flex-col gap-6 sm:grid sm:h-32 sm:grid-cols-[minmax(260px,auto)_1fr_auto] sm:items-center sm:gap-6">
                     <div class="min-w-0">
                         <h2 class="truncate text-2xl font-semibold text-gray-900">
                             {{ $milestone->name }}
@@ -36,8 +40,10 @@
 
                         <div class="mt-1">
                             @if ($currentPeriod)
+                                <div class="milestone-duration hidden text-lg font-semibold text-gray-600"></div>
+
                                 <div
-                                    class="milestone-timer text-3xl font-bold tracking-tight text-gray-900"
+                                    class="milestone-timer whitespace-nowrap text-3xl font-bold tracking-tight text-gray-900"
                                     data-started-at="{{ $currentPeriod->started_at->toIso8601String() }}"
                                 >
                                 </div>
@@ -49,6 +55,7 @@
 
                                     <span class="milestone-total-days text-base text-gray-500"></span>
                                 </div>
+
                             @else
                                 <div class="text-3xl font-semibold text-gray-500">
                                     Stopped
@@ -57,7 +64,16 @@
                         </div>
                     </div>
 
-                    <div class="flex shrink-0 flex-col items-end justify-end gap-3">
+                    <div class="flex min-w-0 flex-wrap items-center justify-center gap-2">
+                        @if ($currentPeriod)
+                            @include('milestones._anniversaries', [
+                                'milestone' => $milestone,
+                                'currentPeriod' => $currentPeriod,
+                            ])
+                        @endif
+                    </div>
+
+                    <div class="flex shrink-0 flex-col items-end justify-end gap-3 sm:justify-self-end">
                         <div class="flex items-center gap-2">
                             @if ($currentPeriod)
                                 <form method="POST" action="{{ route('milestones.reset', $milestone) }}">
