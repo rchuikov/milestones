@@ -3,6 +3,7 @@
     'label' => null,
     'type' => 'text',
     'value' => null,
+    'required' => false,
 ])
 
 <div class="mb-4">
@@ -10,6 +11,10 @@
         <label for="{{ $name }}"
                class="block text-sm font-medium mb-1">
             {{ $label }}
+
+            @if ($required)
+                <span class="text-red-500">*</span>
+            @endif
         </label>
     @endif
 
@@ -18,6 +23,7 @@
         name="{{ $name }}"
         type="{{ $type }}"
         value="{{ $type !== 'password' ? old($name, $value) : null }}"
+        @required($required)
         {{ $attributes->merge([
             'class' => 'w-full rounded-md border border-gray-300 px-3 py-2',
         ]) }}

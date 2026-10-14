@@ -3,7 +3,7 @@
 @section('title', 'Login')
 
 @section('content')
-    <div class="w-full max-w-md bg-white rounded-lg shadow p-8">
+    <div class="bg-white rounded-lg shadow p-8">
         <h1 class="text-2xl font-semibold mb-6">
             Login
         </h1>

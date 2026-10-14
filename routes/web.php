@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,7 +41,20 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/', fn () => view('home'));
+    Route::get('/', [MilestoneController::class, 'index'])
+        ->name('milestones.index');
+    Route::resource('milestones', MilestoneController::class)
+        ->except(['index', 'show']);
+
+    Route::post('milestones/{milestone}/start', [MilestoneController::class, 'start'])
+        ->name('milestones.start');
+    Route::post('milestones/{milestone}/stop', [MilestoneController::class, 'stop'])
+        ->name('milestones.stop');
+    Route::post('milestones/{milestone}/reset', [MilestoneController::class, 'reset'])
+        ->name('milestones.reset');
+
+    Route::get('/milestones/{milestone}/history', [MilestoneController::class, 'history'])
+        ->name('milestones.history');
 
     Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile');

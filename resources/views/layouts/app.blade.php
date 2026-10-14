@@ -15,7 +15,7 @@
         <div class="flex h-16 items-center justify-between">
 
             <a
-                href="/"
+                href="{{ route('milestones.index') }}"
                 class="relative flex h-16 items-center gap-3"
             >
                 <img
