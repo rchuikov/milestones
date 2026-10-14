@@ -24,6 +24,11 @@ Route::middleware('guest')->group(function () {
         ->name('password.reset');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])
         ->name('reset-password.submit');
+
+    Route::get('/auth/google', [AuthController::class, 'redirectToGoogle'])
+        ->name('auth.google');
+    Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback'])
+        ->name('auth.google.callback');
 });
 
 Route::middleware('auth')->group(function () {

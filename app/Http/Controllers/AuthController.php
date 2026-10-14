@@ -4,16 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\ResponseException;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\View\View;
+use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 
 final class AuthController extends Controller
 {
@@ -153,9 +159,18 @@ final class AuthController extends Controller
         $status = Password::reset(
             $data,
             function (User $user, string $password) {
-                $user->password = $password;
-                $user->setRememberToken(Str::random(60));
-                $user->save();
+                DB::transaction(function () use ($user, $password) {
+                    $user->password = $password;
+                    $user->setRememberToken(Str::random(60));
+                    $user->save();
+
+                    if (config('session.driver') === 'database') {
+                        DB::connection(config('session.connection'))
+                            ->table(config('session.table'))
+                            ->where('user_id', $user->id)
+                            ->delete();
+                    }
+                });
 
                 event(new PasswordReset($user));
             }
@@ -166,5 +181,114 @@ final class AuthController extends Controller
             : back()
                 ->withErrors(['email' => __($status)])
                 ->onlyInput('email');
+    }
+
+    public function redirectToGoogle(): RedirectResponse
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    public function handleGoogleCallback(Request $request): RedirectResponse
+    {
+        if ($request->query->has('error')) {
+            $request->session()->forget('state');
+
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'email' => $request->query('error') === 'access_denied'
+                        ? 'Google sign-in was cancelled.'
+                        : 'Google sign-in could not be completed. Please try again.',
+                ]);
+        }
+
+        try {
+            $googleUser = Socialite::driver('google')->user();
+        } catch (InvalidStateException) {
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'email' => 'Your Google sign-in session is invalid or has expired. Please try again.',
+                ]);
+        } catch (GuzzleException $exception) {
+            Log::warning('Google sign-in request failed.', [
+                'exception_type' => $exception::class,
+                'status' => $exception instanceof ResponseException
+                    ? $exception->getResponse()?->getStatusCode()
+                    : null,
+            ]);
+
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'email' => 'Google sign-in is temporarily unavailable. Please try again later.',
+                ]);
+        }
+
+        $googleData = $googleUser->user;
+        $email = $googleUser->getEmail();
+
+        $isGoogleAuthoritative = str_ends_with(strtolower($email), '@gmail.com')
+            || (
+                ($googleData['email_verified'] ?? false)
+                && ! empty($googleData['hd'])
+            );
+
+        $user = User::query()
+            ->where('external_id', $googleUser->getId())
+            ->first();
+
+        if (! $user) {
+            $user = User::query()
+                ->where('email', $email)
+                ->first();
+
+            if ($user && $user->external_id !== null) {
+                return redirect()
+                    ->route('login')
+                    ->withErrors([
+                        'email' => 'This account is linked to another Google account. Use your original sign-in method.',
+                    ]);
+            }
+
+            if ($user && ! $user->email_verified_at) {
+                return redirect()
+                    ->route('login')
+                    ->withErrors([
+                        'email' => 'An unverified account with this email already exists. Recover access to that account first.',
+                    ]);
+            }
+        }
+
+        if (! $user) {
+            $user = new User;
+            $user->name = $googleUser->getName() ?: $email;
+            $user->email = $email;
+            $user->external_id = $googleUser->getId();
+            $user->email_verified_at = $isGoogleAuthoritative
+                ? now()
+                : null;
+            $user->role = UserRole::User;
+            $user->save();
+
+            event(new Registered($user));
+        } elseif (! $user->external_id) {
+            if (! $isGoogleAuthoritative) {
+                return redirect()
+                    ->route('login')
+                    ->withErrors([
+                        'email' => 'An account with this email already exists. Sign in with your password.',
+                    ]);
+            }
+
+            $user->external_id = $googleUser->getId();
+            $user->save();
+        }
+
+        Auth::login($user);
+
+        $request->session()->regenerate();
+
+        return redirect()->intended('/');
     }
 }

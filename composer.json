@@ -14,6 +14,7 @@
         "ext-pdo_mysql": "*",
         "blade-ui-kit/blade-heroicons": "^2.7",
         "laravel/framework": "^13.31",
+        "laravel/socialite": "^5.31",
         "laravel/tinker": "^3.0"
     },
     "require-dev": {

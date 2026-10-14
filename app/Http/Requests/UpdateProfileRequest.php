@@ -12,6 +12,15 @@ final class UpdateProfileRequest extends FormRequest
     {
         $user = $this->user();
 
+        if ($user->password === null) {
+            return [
+                'name' => ['prohibited'],
+                'email' => ['prohibited'],
+                'current_password' => ['prohibited'],
+                'password' => ['required', 'confirmed', Password::min(8)],
+            ];
+        }
+
         $emailChanged = $this->input('email') !== $user->email;
 
         $passwordChanged = $this->filled('password')

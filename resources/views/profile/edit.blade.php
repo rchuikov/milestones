@@ -15,6 +15,10 @@
 @endsection
 
 @section('content')
+    @php
+        $isSettingPassword = auth()->user()->password === null;
+    @endphp
+
     @if (session('status'))
         <div class="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
             {{ session('status') }}
@@ -34,8 +38,10 @@
                 name="name"
                 label="Name"
                 :value="auth()->user()->name"
-                required
-                autofocus
+                :required="! $isSettingPassword"
+                :disabled="$isSettingPassword"
+                :autofocus="! $isSettingPassword"
+                class="disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
                 autocomplete="name"
             />
 
@@ -44,7 +50,9 @@
                 type="email"
                 label="Email"
                 :value="auth()->user()->email"
-                required
+                :required="! $isSettingPassword"
+                :disabled="$isSettingPassword"
+                class="disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
                 autocomplete="email"
             />
         </div>
@@ -55,24 +63,36 @@
             </h2>
 
             <div class="mt-5 space-y-5">
-                <div>
-                    <x-form.input
-                        name="current_password"
-                        type="password"
-                        label="Current password"
-                        autocomplete="current-password"
-                    />
+                @if ($isSettingPassword)
+                    <div class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                        <p class="font-semibold">Set a password to edit your profile</p>
+                        <p class="mt-1">
+                            You will also be able to sign in with your email.
+                            Google sign-in will remain available.
+                        </p>
+                    </div>
+                @else
+                    <div>
+                        <x-form.input
+                            name="current_password"
+                            type="password"
+                            label="Current password"
+                            autocomplete="current-password"
+                        />
 
-                    <p class="-mt-2 text-xs text-gray-500">
-                        Required when changing your email or password.
-                    </p>
-                </div>
+                        <p class="-mt-2 text-xs text-gray-500">
+                            Required when changing your email or password.
+                        </p>
+                    </div>
+                @endif
 
                 <x-form.input
                     name="password"
                     type="password"
                     label="New password"
                     autocomplete="new-password"
+                    :required="$isSettingPassword"
+                    :autofocus="$isSettingPassword"
                 />
 
                 <x-form.input
@@ -80,6 +100,7 @@
                     type="password"
                     label="Confirm new password"
                     autocomplete="new-password"
+                    :required="$isSettingPassword"
                 />
             </div>
         </div>
@@ -97,7 +118,7 @@
                 class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
                 <x-heroicon-o-check class="size-5"/>
-                Save
+                {{ $isSettingPassword ? 'Set password' : 'Save' }}
             </button>
         </div>
     </form>

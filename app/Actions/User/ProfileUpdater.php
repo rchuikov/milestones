@@ -9,6 +9,14 @@ final class ProfileUpdater
 {
     public function update(User $user, array $data): bool
     {
+        if ($user->password === null) {
+            $user->password = $data['password'];
+            $user->setRememberToken(Str::random(60));
+            $user->save();
+
+            return false;
+        }
+
         $emailChanged = $user->email !== $data['email'];
 
         $user->name = $data['name'];

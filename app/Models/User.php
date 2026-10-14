@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
+ * @property string $external_id
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
@@ -27,7 +28,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Milestone> $milestones
  */
 #[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['external_id', 'password', 'remember_token'])]
 final class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
