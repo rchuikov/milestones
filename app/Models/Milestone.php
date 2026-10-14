@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $user_id
  * @property string $name
+ * @property string $color
  * @property bool $show_round_days
  * @property bool $show_half_decade_days
  * @property bool $show_round_weeks
@@ -25,7 +26,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, MilestonePeriod> $periods
  * @property-read MilestonePeriod|null $currentPeriod
  */
-#[Fillable(['name', 'show_round_days', 'show_half_decade_days', 'show_round_weeks', 'show_round_months', 'show_years'])]
+#[Fillable(['name', 'color', 'show_round_days', 'show_half_decade_days', 'show_round_weeks', 'show_round_months', 'show_years'])]
 final class Milestone extends Model
 {
     protected function casts(): array

@@ -22,6 +22,7 @@ final class MilestoneRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255'],
+            'color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
 
             'started_at' => [
                 Rule::requiredIf($canEditStartedAt),

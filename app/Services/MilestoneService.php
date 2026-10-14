@@ -15,6 +15,7 @@ final class MilestoneService
         DB::transaction(function () use ($user, $data) {
             $milestone = $user->milestones()->create([
                 'name' => $data['name'],
+                'color' => $data['color'] ?? null,
                 'show_round_days' => $data['show_round_days'],
                 'show_half_decade_days' => $data['show_half_decade_days'],
                 'show_round_weeks' => $data['show_round_weeks'],
@@ -33,6 +34,7 @@ final class MilestoneService
         DB::transaction(function () use ($milestone, $data) {
             $milestone->update([
                 'name' => $data['name'],
+                'color' => $data['color'] ?? null,
                 'show_round_days' => $data['show_round_days'],
                 'show_half_decade_days' => $data['show_half_decade_days'],
                 'show_round_weeks' => $data['show_round_weeks'],

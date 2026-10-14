@@ -53,6 +53,12 @@
                     required
                 />
             @endunless
+
+            <x-form.color-input
+                name="color"
+                label="Color"
+                :value="$milestone->color"
+            />
         </div>
 
         <div class="mt-8 border-t border-gray-200 pt-6">

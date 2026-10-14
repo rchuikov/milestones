@@ -31,7 +31,13 @@
                 $currentPeriod = $milestone->currentPeriod;
             @endphp
 
-            <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <div class="relative overflow-hidden rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+                @if ($milestone->color)
+                    <div
+                        class="absolute inset-y-0 right-0 w-2"
+                        style="background-color: {{ $milestone->color }}"
+                    ></div>
+                @endif
                 <div class="flex flex-col gap-6 sm:grid sm:h-32 sm:grid-cols-[minmax(260px,auto)_1fr_auto] sm:items-center sm:gap-6">
                     <div class="min-w-0">
                         <h2 class="truncate text-2xl font-semibold text-gray-900">
