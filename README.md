@@ -1,58 +1,142 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# MyMilestones
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+MyMilestones is a personal milestone and elapsed-time tracker built with Laravel. It keeps track of time since meaningful events, preserves period history, and highlights recurring anniversaries.
 
-## About Laravel
+The project is intentionally small in its domain model and straightforward in its Laravel structure.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Account registration, email verification, login, and password recovery.
+- Profile editing, including email and password changes with current-password verification.
+- Personal milestones owned by the authenticated user.
+- Optional custom colors for milestone cards.
+- Live elapsed-time counters for active periods.
+- Start, Stop, and Reset operations with period history.
+- Read-only history with individual periods and total tracked duration.
+- Anniversary detection for:
+  - round days;
+  - five-day marks;
+  - weeks;
+  - calendar months;
+  - calendar years.
+- Per-milestone anniversary display settings.
+- Interactive Artisan command for creating verified users, including users with the `admin` role.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+The `admin` role is stored in the user model, but there is currently no separate admin interface.
 
-## Learning Laravel
+## Domain
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+A user owns milestones. Each milestone has one or more periods.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+A period is active while `finished_at` is `null`.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+| Operation | Behavior |
+| --- | --- |
+| Start | Creates a new active period for a stopped milestone. |
+| Stop | Finishes the active period. |
+| Reset | Finishes the active period and starts a new one at the same timestamp. |
 
-## Agentic Development
+The initial start time can be edited only while the milestone has exactly one period and that period is still active. Historical periods are read-only in the interface.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Stack
+
+- **Backend:** PHP 8.5, Laravel 13, Eloquent, MySQL 8.4.
+- **Frontend:** Blade, Tailwind CSS 4, Vite 8, Blade Heroicons.
+- **Date calculations:** Carbon on the server and `@js-temporal/polyfill` in the browser.
+- **Local development:** Laravel Sail, Docker Compose, Mailpit.
+- **Development tools:** PHPUnit 12, Laravel Pint.
+
+## Local setup
+
+### Requirements
+
+- Git.
+- Docker with Docker Compose v2.
+- A Bash-compatible shell. On Windows, WSL2 is recommended.
+
+PHP, Composer, Node.js, MySQL, and Mailpit run through the local Docker environment.
+
+### 1. Prepare the checkout
+
+Clone the repository, open its root directory, and create the local environment file:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+cp .env.example .env
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Bootstrap Composer dependencies
 
-## Contributing
+A fresh checkout does not contain `vendor/bin/sail`, so install the locked Composer dependencies with a temporary Composer container:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+docker run --rm \
+    --user "$(id -u):$(id -g)" \
+    --env COMPOSER_HOME=/tmp/composer \
+    --volume "$PWD:/app" \
+    --workdir /app \
+    composer:2 \
+    install --ignore-platform-reqs --no-scripts --no-interaction
+```
 
-## Code of Conduct
+### 3. Start Sail and initialize the application
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+./vendor/bin/sail up -d
+./vendor/bin/sail composer install
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail npm ci
+./vendor/bin/sail npm run build
+```
 
-## Security Vulnerabilities
+If MySQL is still starting when migrations run, wait until it is healthy and run the migration command again.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Open the application at the URL configured by `APP_URL` in `.env`.
 
-## License
+For frontend development, run Vite separately:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+./vendor/bin/sail npm run dev -- --host 0.0.0.0
+```
+
+### 4. Create an account
+
+You can register through the application. Verification and password-reset emails are captured by Mailpit in the local environment.
+
+Alternatively, create an already verified user interactively:
+
+```bash
+./vendor/bin/sail artisan user:create
+```
+
+The command prompts for a name, email, role, password, and password confirmation.
+
+## Common commands
+
+Run project commands through Sail from the repository root:
+
+```bash
+# Start or stop the local environment.
+./vendor/bin/sail up -d
+./vendor/bin/sail down
+
+# Apply migrations and inspect their status.
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan migrate:status
+
+# Create a verified user or admin.
+./vendor/bin/sail artisan user:create
+
+# Run the test suite.
+./vendor/bin/sail artisan test
+
+# Rebuild frontend assets.
+./vendor/bin/sail npm run build
+
+# Format PHP code.
+./vendor/bin/sail pint
+```
+
+## Project status
+
+MyMilestones is under active development. The core authentication, profile, milestone tracking, period history, anniversary, and card-color functionality is implemented.
