@@ -106,9 +106,16 @@ final class AuthenticationTest extends TestCase
 
     public function test_unverified_user_is_sent_to_verification_before_accessing_milestones(): void
     {
-        $this->actingAs(User::factory()->unverified()->create())->get('/')
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)
+            ->get('/')
             ->assertRedirect(route('verification.notice'));
-        $this->get('/email/verify')->assertOk();
+
+        $this->get('/email/verify')
+            ->assertOk()
+            ->assertSee('data-cooldown-button', false)
+            ->assertSee('data-remaining-seconds="0"', false);
     }
 
     public function test_signed_verification_link_verifies_email(): void
@@ -140,13 +147,18 @@ final class AuthenticationTest extends TestCase
     public function test_verification_email_can_be_resent_and_is_throttled(): void
     {
         Notification::fake();
+
         $user = User::factory()->unverified()->create();
-        $this->actingAs($user);
-        for ($i = 0; $i < 6; $i++) {
-            $this->post('/email/verification-resend')->assertRedirect()->assertSessionHas('status', 'verification-link-sent');
-        }
-        $this->post('/email/verification-resend')->assertTooManyRequests();
-        Notification::assertSentToTimes($user, VerifyEmail::class, 6);
+
+        $this->actingAs($user)
+            ->post('/email/verification-resend')
+            ->assertRedirect()
+            ->assertSessionHas('status', 'verification-link-sent');
+
+        $this->post('/email/verification-resend')
+            ->assertRedirect()->assertSessionHasErrors('verification');
+
+        Notification::assertSentToTimes($user, VerifyEmail::class, 1);
     }
 
     public function test_verified_users_are_not_sent_another_verification_email(): void
@@ -159,8 +171,14 @@ final class AuthenticationTest extends TestCase
     public function test_password_recovery_sends_a_reset_notification(): void
     {
         Notification::fake();
+
         $user = User::factory()->create();
-        $this->post('/forgot-password', ['email' => $user->email])->assertRedirect(route('login'));
+
+        $this->from('/forgot-password')
+            ->post('/forgot-password', ['email' => $user->email])
+            ->assertRedirect('/forgot-password')
+            ->assertSessionHas('status', 'password-reset-link-sent');
+
         Notification::assertSentTo($user, ResetPassword::class);
     }
 
@@ -168,6 +186,25 @@ final class AuthenticationTest extends TestCase
     {
         $this->post('/forgot-password', ['email' => 'invalid'])->assertSessionHasErrors('email');
         $this->post('/forgot-password', ['email' => 'missing@example.com'])->assertSessionHasErrors('email');
+    }
+
+    public function test_password_recovery_is_throttled(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+
+        $this->post('/forgot-password', [
+            'email' => $user->email,
+        ])
+            ->assertSessionHas('status', 'password-reset-link-sent');
+
+        $this->post('/forgot-password', [
+            'email' => $user->email,
+        ])
+            ->assertSessionHasErrors('email');
+
+        Notification::assertSentToTimes($user, ResetPassword::class, 1);
     }
 
     public static function passwordStates(): array

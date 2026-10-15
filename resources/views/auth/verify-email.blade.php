@@ -23,16 +23,19 @@
             </div>
         @endif
 
+        @error('verification')
+            <p class="mt-4 text-sm text-amber-800">{{ $message }}</p>
+        @enderror
+
         <div class="mt-6 flex items-center justify-between gap-4">
             <form method="POST" action="{{ route('verification.resend') }}">
                 @csrf
 
-                <button
-                    type="submit"
-                    class="cursor-pointer text-sm text-blue-600 hover:underline"
-                >
-                    Resend verification email
-                </button>
+                <x-cooldown-button
+                    label="Resend verification email"
+                    countdown-label="Resend email in"
+                    :remaining-seconds="$verificationCooldown"
+                />
             </form>
 
             <form method="POST" action="{{ route('logout') }}">
@@ -40,7 +43,7 @@
 
                 <button
                     type="submit"
-                    class="cursor-pointer text-sm text-gray-600 hover:text-gray-950"
+                    class="inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
                 >
                     Logout
                 </button>

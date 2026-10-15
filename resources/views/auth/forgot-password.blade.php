@@ -8,9 +8,15 @@
             Forgot password
         </h1>
 
-        <p class="mb-6 text-sm text-gray-500">
-            Enter your email address and we'll send you a password reset link.
-        </p>
+        @if (session('status') === 'password-reset-link-sent')
+            <div class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700">
+                A password reset link has been sent.
+            </div>
+        @else
+            <p class="mb-6 text-sm text-gray-500">
+                Enter your email address and we'll send you a password reset link.
+            </p>
+        @endif
 
         <form method="POST" action="{{ route('forgot-password.submit') }}">
             @csrf
@@ -23,12 +29,15 @@
                 autofocus
             />
 
-            <button
-                type="submit"
-                class="mt-2 w-full cursor-pointer rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-800"
-            >
-                Send reset link
-            </button>
+            <div class="mt-6">
+                <x-cooldown-button
+                    session-key="password-reset-link-sent"
+                    storage-prefix="password_reset"
+                    label="Send reset link"
+                    countdown-label="Send again in"
+                    class="w-full"
+                />
+            </div>
 
             <div class="mt-6 text-center text-sm">
                 <a href="{{ route('login') }}" class="text-blue-600 hover:underline">

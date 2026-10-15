@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Services\VerificationEmailSender;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ResponseException;
 use Illuminate\Auth\Events\PasswordReset;
@@ -91,18 +92,24 @@ final class AuthController extends Controller
         return redirect()->route('verification.notice');
     }
 
-    public function showVerifyEmail(): View
+    public function showVerifyEmail(Request $request, VerificationEmailSender $sender): View
     {
-        return view('auth.verify-email');
+        return view('auth.verify-email', [
+            'verificationCooldown' => $sender->remainingSeconds($request->user()),
+        ]);
     }
 
-    public function resendVerificationEmail(Request $request): RedirectResponse
+    public function resendVerificationEmail(Request $request, VerificationEmailSender $sender): RedirectResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
             return redirect('/');
         }
 
-        $request->user()->sendEmailVerificationNotification();
+        if (! $sender->send($request->user())) {
+            return back()->withErrors([
+                'verification' => 'Please wait before requesting another verification email.',
+            ]);
+        }
 
         return back()->with('status', 'verification-link-sent');
     }
@@ -130,7 +137,9 @@ final class AuthController extends Controller
         );
 
         return $status === Password::ResetLinkSent
-            ? redirect()->route('login')->with('status', __($status))
+            ? back()
+                ->with('status', 'password-reset-link-sent')
+                ->withInput($request->only('email'))
             : back()
                 ->withErrors(['email' => __($status)])
                 ->onlyInput('email');

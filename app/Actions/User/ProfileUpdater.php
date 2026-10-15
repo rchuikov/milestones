@@ -3,10 +3,13 @@
 namespace App\Actions\User;
 
 use App\Models\User;
+use App\Services\VerificationEmailSender;
 use Illuminate\Support\Str;
 
 final class ProfileUpdater
 {
+    public function __construct(private VerificationEmailSender $verificationEmailSender) {}
+
     public function update(User $user, array $data): bool
     {
         if ($user->password === null) {
@@ -34,7 +37,7 @@ final class ProfileUpdater
         $user->save();
 
         if ($emailChanged) {
-            $user->sendEmailVerificationNotification();
+            $this->verificationEmailSender->send($user);
         }
 
         return $emailChanged;
