@@ -137,6 +137,22 @@ Run project commands through Sail from the repository root:
 ./vendor/bin/sail pint
 ```
 
+## Tests
+
+```bash
+# Backend unit and feature tests.
+./vendor/bin/sail artisan test
+
+# JavaScript timer tests (Node.js test runner, no additional dependencies).
+./vendor/bin/sail npm test
+```
+
+Backend tests cover registration, login/logout, email verification, password recovery, Google sign-in and account linking, profile updates and first-password setup, milestone ownership and validation, period transitions and transaction rollback, history, anniversaries, duration rendering, user creation, and the Google-account migration rollback.
+
+The PHP suite uses the dedicated MySQL database named `testing`. Sail creates it on first initialization of the MySQL volume; an existing volume may require it to be created separately with access for the configured database user. Tests rebuild this database and roll back their changes. Do not store application data there. A guard stops the suite if cached configuration points to another database; clear configuration with `./vendor/bin/sail artisan config:clear` if needed.
+
+Google responses and mail notifications are faked, so the suite does not need Google credentials or an external mail server. JavaScript tests use controlled time and a minimal DOM to exercise the actual timer module, including daylight-saving transitions and midnight reloads. They use Node's experimental VM modules to isolate the browser module; no real browser or visual layout checks are included.
+
 ## Project status
 
 MyMilestones is under active development. The core authentication, profile, milestone tracking, period history, anniversary, and card-color functionality is implemented.
