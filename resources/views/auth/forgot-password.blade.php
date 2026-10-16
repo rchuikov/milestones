@@ -8,15 +8,9 @@
             Forgot password
         </h1>
 
-        @if (session('status') === 'password-reset-link-sent')
-            <div class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700">
-                A password reset link has been sent.
-            </div>
-        @else
-            <p class="mb-6 text-sm text-gray-500">
-                Enter your email address and we'll send you a password reset link.
-            </p>
-        @endif
+        <p class="mb-6 text-sm text-gray-500">
+            Enter your email address and we'll send you a password reset link.
+        </p>
 
         <form method="POST" action="{{ route('forgot-password.submit') }}">
             @csrf
@@ -31,10 +25,10 @@
 
             <div class="mt-6">
                 <x-cooldown-button
-                    session-key="password-reset-link-sent"
                     storage-prefix="password_reset"
                     label="Send reset link"
                     countdown-label="Send again in"
+                    :restart="session('passwordResetSent', false)"
                     class="w-full"
                 />
             </div>

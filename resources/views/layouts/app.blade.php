@@ -89,6 +89,8 @@
                 </div>
             @endif
 
+            <x-flash-message/>
+
             @yield('content')
         </div>
     </main>

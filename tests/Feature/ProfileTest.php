@@ -27,7 +27,8 @@ final class ProfileTest extends TestCase
         $user = User::factory()->create();
         $verifiedAt = $user->email_verified_at;
         $this->actingAs($user)->patch('/profile', ['name' => 'Updated Name', 'email' => $user->email])
-            ->assertRedirect()->assertSessionHasNoErrors();
+            ->assertRedirect()->assertSessionHasNoErrors()
+            ->assertSessionHas('flash', ['type' => 'success', 'message' => 'Profile updated.']);
         $this->assertSame('Updated Name', $user->fresh()->name);
         $this->assertTrue($verifiedAt->equalTo($user->fresh()->email_verified_at));
         Notification::assertNothingSent();
@@ -86,7 +87,7 @@ final class ProfileTest extends TestCase
         $token = $user->remember_token;
         $this->actingAs($user)->from('/profile')->patch('/profile', [
             'password' => 'first-password', 'password_confirmation' => 'first-password',
-        ])->assertRedirect('/profile')->assertSessionHasNoErrors()->assertSessionHas('status');
+        ])->assertRedirect('/profile')->assertSessionHasNoErrors()->assertSessionHas('flash', ['type' => 'success', 'message' => 'Password set. You can now edit your profile and sign in with your email.']);
         $this->assertTrue(Hash::check('first-password', $user->fresh()->password));
         $this->assertEquals($original, $user->fresh()->only(array_keys($original)));
         $this->assertNotSame($token, $user->fresh()->remember_token);

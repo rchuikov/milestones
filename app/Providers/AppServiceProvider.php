@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\User\SendVerificationEmail;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\ServiceProvider;
 
 final class AppServiceProvider extends ServiceProvider
@@ -22,6 +23,32 @@ final class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        RedirectResponse::macro('success', function (string $message): RedirectResponse {
+            return $this->with('flash', [
+                'type' => 'success',
+                'message' => $message,
+            ]);
+        });
+
+        RedirectResponse::macro('info', function (string $message): RedirectResponse {
+            return $this->with('flash', [
+                'type' => 'info',
+                'message' => $message,
+            ]);
+        });
+
+        RedirectResponse::macro('warning', function (string $message): RedirectResponse {
+            return $this->with('flash', [
+                'type' => 'warning',
+                'message' => $message,
+            ]);
+        });
+
+        RedirectResponse::macro('danger', function (string $message): RedirectResponse {
+            return $this->with('flash', [
+                'type' => 'danger',
+                'message' => $message,
+            ]);
+        });
     }
 }

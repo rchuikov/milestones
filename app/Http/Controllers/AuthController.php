@@ -111,7 +111,7 @@ final class AuthController extends Controller
             ]);
         }
 
-        return back()->with('status', 'verification-link-sent');
+        return back()->success('A new verification link has been sent.');
     }
 
     public function verifyEmail(EmailVerificationRequest $request): RedirectResponse
@@ -138,7 +138,8 @@ final class AuthController extends Controller
 
         return $status === Password::ResetLinkSent
             ? back()
-                ->with('status', 'password-reset-link-sent')
+                ->success('A password reset link has been sent.')
+                ->with('passwordResetSent', true)
                 ->withInput($request->only('email'))
             : back()
                 ->withErrors(['email' => __($status)])
@@ -186,7 +187,7 @@ final class AuthController extends Controller
         );
 
         return $status === Password::PasswordReset
-            ? redirect()->route('login')->with('status', __($status))
+            ? redirect()->route('login')->success(__($status))
             : back()
                 ->withErrors(['email' => __($status)])
                 ->onlyInput('email');

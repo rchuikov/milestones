@@ -65,7 +65,7 @@ final class VerificationEmailCooldownTest extends TestCase
             ->assertSee('data-remaining-seconds="0"', false);
         Notification::assertNothingSent();
 
-        $this->post('/email/verification-resend')->assertSessionHas('status', 'verification-link-sent');
+        $this->post('/email/verification-resend')->assertSessionHas('flash', ['type' => 'success', 'message' => 'A new verification link has been sent.']);
         $this->get('/email/verify')->assertOk()->assertSee('data-remaining-seconds="60"', false)->assertSee('Resend email in 01:00');
         $this->travel(30)->seconds();
         $this->get('/email/verify')->assertOk()->assertSee('data-remaining-seconds="30"', false);
@@ -80,12 +80,12 @@ final class VerificationEmailCooldownTest extends TestCase
         Notification::fake();
         $this->travelTo(now()->startOfSecond());
         $user = User::factory()->unverified()->create();
-        $this->actingAs($user)->post('/email/verification-resend')->assertSessionHas('status', 'verification-link-sent');
+        $this->actingAs($user)->post('/email/verification-resend')->assertSessionHas('flash', ['type' => 'success', 'message' => 'A new verification link has been sent.']);
         $this->travel(59)->seconds();
         $this->post('/email/verification-resend')->assertSessionHasErrors('verification');
         Notification::assertSentToTimes($user, VerifyEmail::class, 1);
         $this->travel(1)->second();
-        $this->post('/email/verification-resend')->assertSessionHas('status', 'verification-link-sent');
+        $this->post('/email/verification-resend')->assertSessionHas('flash', ['type' => 'success', 'message' => 'A new verification link has been sent.']);
         Notification::assertSentToTimes($user, VerifyEmail::class, 2);
         $this->assertSame(60, app(VerificationEmailSender::class)->remainingSeconds($user));
     }

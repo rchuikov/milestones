@@ -8,12 +8,6 @@
             Login
         </h1>
 
-        @if (session('status'))
-            <div class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700">
-                {{ session('status') }}
-            </div>
-        @endif
-
         <a
             href="{{ route('auth.google') }}"
             class="mb-6 flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"

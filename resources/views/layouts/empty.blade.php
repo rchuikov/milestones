@@ -28,6 +28,8 @@
             </span>
         </a>
 
+        <x-flash-message/>
+
         @yield('content')
     </div>
 </main>

@@ -1,15 +1,14 @@
 @props([
-    'sessionKey' => null,
     'storagePrefix' => null,
     'label',
     'countdownLabel' => null,
     'seconds' => 60,
     'remainingSeconds' => null,
+    'restart' => false,
 ])
 
 @php
     $countdownLabel ??= $label;
-    $restartCooldown = $sessionKey && session('status') === $sessionKey;
     $remaining = max(0, (int) $remainingSeconds);
 @endphp
 
@@ -25,7 +24,7 @@
     data-label="{{ $label }}"
     data-countdown-label="{{ $countdownLabel }}"
     data-remaining-seconds="{{ $remainingSeconds }}"
-    data-restart="{{ $restartCooldown ? '1' : '0' }}"
+    data-restart="{{ $restart ? '1' : '0' }}"
 >
     {{ $remaining > 0
         ? $countdownLabel.' '.sprintf('%02d:%02d', intdiv($remaining, 60), $remaining % 60)

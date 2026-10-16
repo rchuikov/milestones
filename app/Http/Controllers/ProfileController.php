@@ -27,7 +27,7 @@ final class ProfileController extends Controller
 
         return $emailChanged
             ? redirect()->route('verification.notice')
-            : back()->with('status', $isSettingPassword
+            : back()->success($isSettingPassword
                 ? 'Password set. You can now edit your profile and sign in with your email.'
                 : 'Profile updated.');
     }

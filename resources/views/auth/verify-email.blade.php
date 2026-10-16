@@ -17,12 +17,6 @@
             Please check your inbox and follow the link to activate your account.
         </p>
 
-        @if (session('status') === 'verification-link-sent')
-            <div class="mt-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700">
-                A new verification link has been sent.
-            </div>
-        @endif
-
         @error('verification')
             <p class="mt-4 text-sm text-amber-800">{{ $message }}</p>
         @enderror

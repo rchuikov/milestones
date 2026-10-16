@@ -60,7 +60,8 @@ final class MilestoneTest extends TestCase
     {
         $user = User::factory()->create();
         $this->actingAs($user)->post('/milestones', $this->data() + ['user_id' => 999])
-            ->assertRedirect('/')->assertSessionHasNoErrors();
+            ->assertRedirect('/')->assertSessionHasNoErrors()
+            ->assertSessionHas('flash', ['type' => 'success', 'message' => 'Milestone created.']);
         $milestone = Milestone::sole();
         $this->assertSame($user->id, $milestone->user_id);
         $this->assertSame('#aBc123', $milestone->color);
@@ -92,7 +93,8 @@ final class MilestoneTest extends TestCase
         $milestone = $this->milestone($user);
         $this->actingAs($user)->get(route('milestones.edit', $milestone))->assertOk()->assertSee('name="started_at"', false);
         $this->put(route('milestones.update', $milestone), $this->data(['color' => null, 'started_at' => '2025-12-01T10:00']))
-            ->assertRedirect('/')->assertSessionHasNoErrors();
+            ->assertRedirect('/')->assertSessionHasNoErrors()
+            ->assertSessionHas('flash', ['type' => 'success', 'message' => 'Milestone updated.']);
         $this->assertNull($milestone->fresh()->color);
         $this->assertSame('2025-12-01 10:00:00', $milestone->fresh()->currentPeriod->started_at->toDateTimeString());
     }
@@ -236,7 +238,10 @@ final class MilestoneTest extends TestCase
     {
         $user = User::factory()->create();
         $milestone = $this->milestone($user);
-        $this->actingAs($user)->delete(route('milestones.destroy', $milestone))->assertRedirect('/');
+        $this->actingAs($user)->delete(route('milestones.destroy', $milestone))->assertRedirect('/')
+            ->assertSessionHas('flash', ['type' => 'success', 'message' => 'Milestone deleted.']);
+        $this->get('/')->assertOk()->assertSee('Milestone deleted.');
+        $this->get('/')->assertOk()->assertDontSee('Milestone deleted.');
         $this->assertDatabaseMissing('milestones', ['id' => $milestone->id]);
         $this->assertDatabaseCount('milestone_periods', 0);
     }

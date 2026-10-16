@@ -153,7 +153,7 @@ final class AuthenticationTest extends TestCase
         $this->actingAs($user)
             ->post('/email/verification-resend')
             ->assertRedirect()
-            ->assertSessionHas('status', 'verification-link-sent');
+            ->assertSessionHas('flash', ['type' => 'success', 'message' => 'A new verification link has been sent.']);
 
         $this->post('/email/verification-resend')
             ->assertRedirect()->assertSessionHasErrors('verification');
@@ -177,9 +177,33 @@ final class AuthenticationTest extends TestCase
         $this->from('/forgot-password')
             ->post('/forgot-password', ['email' => $user->email])
             ->assertRedirect('/forgot-password')
-            ->assertSessionHas('status', 'password-reset-link-sent');
+            ->assertSessionHas('flash', ['type' => 'success', 'message' => 'A password reset link has been sent.'])
+            ->assertSessionHas('passwordResetSent', true);
 
         Notification::assertSentTo($user, ResetPassword::class);
+    }
+
+    public function test_password_recovery_flash_and_restart_are_only_shown_once(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create();
+
+        $this->from('/forgot-password')->post('/forgot-password', ['email' => $user->email])
+            ->assertRedirect('/forgot-password')
+            ->assertSessionHas('passwordResetSent', true)
+            ->assertSessionHasInput('email', $user->email);
+
+        $this->get('/forgot-password')->assertOk()
+            ->assertSee('A password reset link has been sent.')
+            ->assertSee("Enter your email address and we'll send you a password reset link.", false)
+            ->assertSee('data-restart="1"', false);
+
+        $this->get('/forgot-password')->assertOk()
+            ->assertDontSee('A password reset link has been sent.')
+            ->assertSee("Enter your email address and we'll send you a password reset link.", false)
+            ->assertSee('data-restart="0"', false)
+            ->assertSessionMissing('flash')
+            ->assertSessionMissing('passwordResetSent');
     }
 
     public function test_password_recovery_validates_email_and_rejects_unknown_users(): void
@@ -197,7 +221,8 @@ final class AuthenticationTest extends TestCase
         $this->post('/forgot-password', [
             'email' => $user->email,
         ])
-            ->assertSessionHas('status', 'password-reset-link-sent');
+            ->assertSessionHas('flash', ['type' => 'success', 'message' => 'A password reset link has been sent.'])
+            ->assertSessionHas('passwordResetSent', true);
 
         $this->post('/forgot-password', [
             'email' => $user->email,
@@ -222,7 +247,8 @@ final class AuthenticationTest extends TestCase
         $this->post('/reset-password', [
             'email' => $user->email, 'token' => $token,
             'password' => 'replacement-password', 'password_confirmation' => 'replacement-password',
-        ])->assertRedirect(route('login'));
+        ])->assertRedirect(route('login'))
+            ->assertSessionHas('flash', ['type' => 'success', 'message' => __(Password::PasswordReset)]);
         $this->assertTrue(Hash::check('replacement-password', $user->fresh()->password));
         $this->assertNotSame($oldToken, $user->fresh()->remember_token);
         $this->assertFalse(Password::tokenExists($user->fresh(), $token));
@@ -276,7 +302,8 @@ final class AuthenticationTest extends TestCase
         $this->post('/reset-password', [
             'email' => $user->email, 'token' => $token,
             'password' => 'replacement-password', 'password_confirmation' => 'replacement-password',
-        ])->assertRedirect(route('login'));
+        ])->assertRedirect(route('login'))
+            ->assertSessionHas('flash', ['type' => 'success', 'message' => __(Password::PasswordReset)]);
 
         $this->assertDatabaseMissing('sessions', ['user_id' => $user->id]);
         $this->assertDatabaseHas('sessions', ['id' => str_repeat('c', 40), 'user_id' => $other->id]);
