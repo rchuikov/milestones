@@ -38,6 +38,7 @@
                 name="email"
                 type="email"
                 label="Email"
+                :value="$loginEmail"
                 required
                 autofocus
             />
@@ -55,12 +56,14 @@
                 :checked="old('remember')"
             />
 
-            <button
-                type="submit"
-                class="w-full rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-700"
-            >
-                Login
-            </button>
+            <x-cooldown-button
+                storage-prefix="login"
+                label="Login"
+                countdown-label="Try again in"
+                :remaining-seconds="$loginCooldown"
+                class="w-full"
+            />
+
         </form>
         <div class="mt-6 flex items-center justify-between text-sm">
             <a

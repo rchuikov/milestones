@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\View\View;
@@ -24,9 +25,19 @@ use Laravel\Socialite\Two\InvalidStateException;
 
 final class AuthController extends Controller
 {
-    public function showLogin(): View
+    private const int LOGIN_ATTEMPTS = 5;
+
+    public function showLogin(Request $request): View
     {
-        return view('auth.login');
+        $email = $request->session()->get('loginEmail');
+        $key = 'login:'.Str::lower($email ?? '').'|'.$request->ip();
+
+        return view('auth.login', [
+            'loginEmail' => $email,
+            'loginCooldown' => $email !== null && RateLimiter::tooManyAttempts($key, self::LOGIN_ATTEMPTS)
+                ? RateLimiter::availableIn($key)
+                : 0,
+        ]);
     }
 
     public function login(Request $request): RedirectResponse
@@ -36,17 +47,35 @@ final class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        $key = 'login:'.Str::lower($credentials['email']).'|'.$request->ip();
+        $request->session()->put('loginEmail', $credentials['email']);
+
+        if (! RateLimiter::tooManyAttempts($key, self::LOGIN_ATTEMPTS)) {
+            if (Auth::attempt($credentials, $request->boolean('remember'))) {
+                RateLimiter::clear($key);
+                $request->session()->forget('loginEmail');
+                $request->session()->regenerate();
+
+                return redirect()->intended();
+            }
+
+            RateLimiter::hit($key);
+        }
+
+        if (RateLimiter::tooManyAttempts($key, self::LOGIN_ATTEMPTS)) {
             return back()
-                ->withErrors([
-                    'email' => 'Invalid email or password.',
-                ])
+                ->danger('Too many login attempts. Try again later.')
+                ->with('loginCooldown', RateLimiter::availableIn($key))
                 ->onlyInput('email', 'remember');
         }
 
-        $request->session()->regenerate();
+        $attemptsLeft = self::LOGIN_ATTEMPTS - RateLimiter::attempts($key);
 
-        return redirect()->intended();
+        return back()
+            ->withErrors([
+                'email' => "Invalid email or password. Attempts left: {$attemptsLeft}",
+            ])
+            ->onlyInput('email', 'remember');
     }
 
     public function logout(Request $request): RedirectResponse

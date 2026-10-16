@@ -14,6 +14,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/register', [AuthController::class, 'showRegister'])
         ->name('register');
     Route::post('/register', [AuthController::class, 'register'])
+        ->middleware('throttle:register')
         ->name('register.submit');
 
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])

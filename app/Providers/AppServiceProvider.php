@@ -4,25 +4,28 @@ namespace App\Providers;
 
 use App\Actions\User\SendVerificationEmail;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 final class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        // Replace the default Registered listener without adding a second sender.
-        $this->app->bind(SendEmailVerificationNotification::class, SendVerificationEmail::class);
+        $this->app->bind(
+            SendEmailVerificationNotification::class,
+            SendVerificationEmail::class,
+        );
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perMinutes(10, 5)->by($request->ip());
+        });
+
         RedirectResponse::macro('success', function (string $message): RedirectResponse {
             return $this->with('flash', [
                 'type' => 'success',
