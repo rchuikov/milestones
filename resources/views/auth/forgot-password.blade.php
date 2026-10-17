@@ -12,7 +12,11 @@
             Enter your email address and we'll send you a password reset link.
         </p>
 
-        <form method="POST" action="{{ route('forgot-password.submit') }}">
+        <form
+            method="POST"
+            action="{{ route('forgot-password.submit') }}"
+            data-externally-blocked="1"
+        >
             @csrf
 
             <x-form.input
@@ -23,12 +27,15 @@
                 autofocus
             />
 
+            <x-turnstile />
+
             <div class="mt-6">
                 <x-cooldown-button
                     storage-prefix="password_reset"
                     label="Send reset link"
                     countdown-label="Send again in"
                     :restart="session('passwordResetSent', false)"
+                    disabled
                     class="w-full"
                 />
             </div>

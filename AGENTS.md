@@ -42,7 +42,7 @@ Do not move general business workflows into models.
 
 ## Validation
 
-Use FormRequest classes for HTTP input validation and normalization.
+Use FormRequest classes for complex HTTP input validation, normalization, or request-level authorization. Simple validation may remain directly in controllers.
 
 Use `prepareForValidation()` when request data needs normalization before validation.
 

@@ -31,7 +31,12 @@
             <div class="h-px flex-1 bg-gray-200"></div>
         </div>
 
-        <form method="POST" action="{{ route('login.submit') }}">
+        <form
+            method="POST"
+            action="{{ route('login.submit') }}"
+            data-externally-blocked="1"
+        >
+
             @csrf
 
             <x-form.input
@@ -56,11 +61,14 @@
                 :checked="old('remember')"
             />
 
+            <x-turnstile />
+
             <x-cooldown-button
                 storage-prefix="login"
                 label="Login"
                 countdown-label="Try again in"
                 :remaining-seconds="$loginCooldown"
+                disabled
                 class="w-full"
             />
 

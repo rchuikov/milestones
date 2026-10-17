@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\VerificationEmailSender;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\GoogleProvider;
@@ -22,6 +23,10 @@ final class VerificationEmailCooldownTest extends TestCase
     {
         parent::setUp();
 
+        config(['services.turnstile.secret_key' => 'test-secret']);
+        Http::preventStrayRequests();
+        Http::fake(['challenges.cloudflare.com/turnstile/v0/siteverify' => Http::response(['success' => true])]);
+
         $this->freezeTime();
     }
 
@@ -29,6 +34,7 @@ final class VerificationEmailCooldownTest extends TestCase
     {
         Notification::fake();
         $this->post('/register', [
+            'cf-turnstile-response' => 'test-token',
             'name' => 'New User', 'email' => 'new@example.com',
             'password' => 'secure-password', 'password_confirmation' => 'secure-password',
         ])->assertRedirect(route('verification.notice'));

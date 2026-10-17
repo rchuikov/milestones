@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Rules\Turnstile;
 use App\Services\VerificationEmailSender;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ResponseException;
@@ -42,10 +43,13 @@ final class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
+        $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
+            'cf-turnstile-response' => ['bail', 'required', 'string', 'max:2048', new Turnstile],
         ]);
+
+        $credentials = $request->only('email', 'password');
 
         $key = 'login:'.Str::lower($credentials['email']).'|'.$request->ip();
         $request->session()->put('loginEmail', $credentials['email']);
@@ -103,6 +107,7 @@ final class AuthController extends Controller
                 'confirmed',
                 PasswordRule::min(8),
             ],
+            'cf-turnstile-response' => ['bail', 'required', 'string', 'max:2048', new Turnstile],
         ]);
 
         $user = new User;
@@ -159,6 +164,7 @@ final class AuthController extends Controller
     {
         $request->validate([
             'email' => ['required', 'email'],
+            'cf-turnstile-response' => ['bail', 'required', 'string', 'max:2048', new Turnstile],
         ]);
 
         $status = Password::sendResetLink(

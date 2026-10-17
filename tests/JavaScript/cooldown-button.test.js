@@ -6,10 +6,19 @@ import vm from 'node:vm';
 const blade = await readFile(new URL('../../resources/views/components/cooldown-button.blade.php', import.meta.url), 'utf8');
 const source = blade.match(/<script>([\s\S]*?)<\/script>/)[1];
 
-function render({ remaining = '', restart = '0', now = 100000, storage = new Map(), storageAllowed = true } = {}) {
+function render({ remaining = '', restart = '0', now = 100000, storage = new Map(), storageAllowed = true, blocked = false, hasForm = true } = {}) {
     let clock = now;
     let tick;
+    const listeners = {};
+    const form = hasForm ? {
+        dataset: { externallyBlocked: blocked ? '1' : '0' },
+        addEventListener(name, callback) { listeners[name] = callback; },
+    } : null;
     const button = {
+        closest(selector) {
+            assert.equal(selector, 'form');
+            return form;
+        },
         dataset: {
             label: 'Send email', countdownLabel: 'Send again in', storagePrefix: 'password_reset',
             seconds: '60', remainingSeconds: String(remaining), restart,
@@ -41,6 +50,9 @@ function render({ remaining = '', restart = '0', now = 100000, storage = new Map
     });
     return {
         button,
+        block(blocked) {
+            listeners['submit-block-change']({ detail: { blocked } });
+        },
         advance(seconds) {
             clock += seconds * 1000;
             tick();
@@ -97,4 +109,42 @@ test('password reset retains local cooldown across reload and clears it after ex
     assert.equal(reloaded.button.disabled, false);
     assert.equal(storage.has('password_reset_available_at'), false);
     assert.equal(render({ now: 170000, storage }).button.disabled, false);
+});
+
+test('external verification blocks an idle button and can be restored after success', () => {
+    const page = render({ blocked: true });
+    assert.equal(page.button.disabled, true);
+    assert.equal(page.button.textContent, 'Send email');
+    page.block(false);
+    assert.equal(page.button.disabled, false);
+    page.block(true);
+    page.advance(10);
+    assert.equal(page.button.disabled, true);
+});
+
+for (const options of [{ remaining: 60 }, { restart: '1' }]) {
+    test('verification success cannot bypass cooldown ' + JSON.stringify(options), () => {
+        const page = render({ ...options, blocked: true });
+        page.block(false);
+        assert.equal(page.button.disabled, true);
+        assert.equal(page.button.textContent, 'Send again in 01:00');
+        page.advance(60);
+        assert.equal(page.button.disabled, false);
+    });
+
+    test('cooldown expiry preserves external blocking ' + JSON.stringify(options), () => {
+        const page = render({ ...options, blocked: true });
+        page.advance(60);
+        assert.equal(page.button.disabled, true);
+        assert.equal(page.button.textContent, 'Send email');
+        page.block(false);
+        assert.equal(page.button.disabled, false);
+    });
+}
+
+test('button without a containing form still follows its cooldown', () => {
+    const page = render({ remaining: 1, hasForm: false });
+    assert.equal(page.button.disabled, true);
+    page.advance(1);
+    assert.equal(page.button.disabled, false);
 });

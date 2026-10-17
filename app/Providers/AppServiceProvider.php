@@ -22,8 +22,16 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        RateLimiter::for('login-submit', function (Request $request) {
+            return Limit::perMinute(20)->by($request->ip());
+        });
+
         RateLimiter::for('register', function (Request $request) {
             return Limit::perMinutes(10, 5)->by($request->ip());
+        });
+
+        RateLimiter::for('password-recovery', function (Request $request) {
+            return Limit::perMinutes(10, 10)->by($request->ip());
         });
 
         RedirectResponse::macro('success', function (string $message): RedirectResponse {

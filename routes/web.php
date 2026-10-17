@@ -9,6 +9,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])
         ->name('login');
     Route::post('/login', [AuthController::class, 'login'])
+        ->middleware('throttle:login-submit')
         ->name('login.submit');
 
     Route::get('/register', [AuthController::class, 'showRegister'])
@@ -20,6 +21,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])
         ->name('forgot-password');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:password-recovery')
         ->name('forgot-password.submit');
     Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])
         ->name('password.reset');

@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -93,7 +94,12 @@ final class ProfileTest extends TestCase
         $this->assertNotSame($token, $user->fresh()->remember_token);
         $this->get('/profile')->assertSee('name="current_password"', false)->assertDontSee('Set a password to edit your profile');
         $this->post('/logout');
-        $this->post('/login', ['email' => $user->email, 'password' => 'first-password'])->assertSessionHasNoErrors();
+        config(['services.turnstile.secret_key' => 'test-secret']);
+        Http::preventStrayRequests();
+        Http::fake([
+            'challenges.cloudflare.com/turnstile/v0/siteverify' => Http::response(['success' => true]),
+        ]);
+        $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'first-password'])->assertSessionHasNoErrors();
         $this->assertAuthenticatedAs($user);
     }
 

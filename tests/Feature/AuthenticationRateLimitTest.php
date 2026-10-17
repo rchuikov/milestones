@@ -7,6 +7,7 @@ use Illuminate\Auth\Events\Attempting;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -19,6 +20,10 @@ final class AuthenticationRateLimitTest extends TestCase
     {
         parent::setUp();
 
+        config(['services.turnstile.secret_key' => 'test-secret']);
+        Http::preventStrayRequests();
+        Http::fake(['challenges.cloudflare.com/turnstile/v0/siteverify' => Http::response(['success' => true])]);
+
         $this->travelTo(now()->startOfSecond());
         Event::fake([Attempting::class, Failed::class]);
     }
@@ -30,6 +35,7 @@ final class AuthenticationRateLimitTest extends TestCase
 
         for ($attempt = 1; $attempt <= 4; $attempt++) {
             $this->from('/login')->post('/login', [
+                'cf-turnstile-response' => 'test-token',
                 'email' => $user->email, 'password' => 'wrong', 'remember' => '1',
             ])->assertRedirect('/login')
                 ->assertSessionHasErrors(['email' => 'Invalid email or password. Attempts left: '.(5 - $attempt)])
@@ -41,6 +47,7 @@ final class AuthenticationRateLimitTest extends TestCase
         }
 
         $this->post('/login', [
+            'cf-turnstile-response' => 'test-token',
             'email' => $user->email, 'password' => 'wrong', 'remember' => '1',
         ])->assertRedirect('/login')
             ->assertSessionHasNoErrors()
@@ -68,7 +75,7 @@ final class AuthenticationRateLimitTest extends TestCase
         $email = 'PERSON@example.com';
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
-            $this->from('/login')->post('/login', ['email' => $email, 'password' => 'wrong']);
+            $this->from('/login')->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $email, 'password' => 'wrong']);
         }
 
         $this->get('/login')->assertOk()->assertSee('data-remaining-seconds="60"', false);
@@ -89,7 +96,7 @@ final class AuthenticationRateLimitTest extends TestCase
 
         $this->travel(40)->seconds();
         $response = $this->get('/login')->assertOk()->assertSee('data-remaining-seconds="0"', false);
-        $this->assertDoesNotMatchRegularExpression('/<button\b[^>]*\sdisabled(?:\s|=)[^>]*data-cooldown-button/s', $response->getContent());
+        $this->assertMatchesRegularExpression('/<button\b[^>]*\sdisabled(?:\s|=)[^>]*data-cooldown-button/s', $response->getContent());
         Event::assertDispatchedTimes(Attempting::class, 5);
     }
 
@@ -105,12 +112,12 @@ final class AuthenticationRateLimitTest extends TestCase
         $key = 'login:'.$user->email.'|127.0.0.1';
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
-            $this->from('/login')->post('/login', ['email' => $user->email, 'password' => 'wrong']);
+            $this->from('/login')->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'wrong']);
         }
 
         $this->travel(20)->seconds();
 
-        $this->post('/login', ['email' => $user->email, 'password' => $password])
+        $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => $password])
             ->assertRedirect('/login')
             ->assertSessionHasNoErrors()
             ->assertSessionHas('flash', ['type' => 'danger', 'message' => 'Too many login attempts. Try again later.'])
@@ -129,11 +136,11 @@ final class AuthenticationRateLimitTest extends TestCase
         $key = 'login:'.$user->email.'|127.0.0.1';
 
         for ($attempt = 0; $attempt < 4; $attempt++) {
-            $this->post('/login', ['email' => $user->email, 'password' => 'wrong']);
+            $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'wrong']);
         }
 
         $this->withSession(['url.intended' => url('/profile')])
-            ->post('/login', ['email' => $user->email, 'password' => 'password', 'remember' => '1'])
+            ->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'password', 'remember' => '1'])
             ->assertRedirect('/profile')
             ->assertCookie(auth()->guard()->getRecallerName())
             ->assertSessionMissing('loginEmail')
@@ -152,16 +159,16 @@ final class AuthenticationRateLimitTest extends TestCase
         $user = User::factory()->create();
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
-            $this->from('/login')->post('/login', ['email' => $user->email, 'password' => 'wrong']);
+            $this->from('/login')->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'wrong']);
         }
 
         $this->travel(59)->seconds();
-        $this->post('/login', ['email' => $user->email, 'password' => 'password'])
+        $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'password'])
             ->assertSessionHas('loginCooldown', 1);
         $this->assertGuest();
 
         $this->travel(1)->second();
-        $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect('/');
+        $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'password'])->assertRedirect('/');
         $this->assertAuthenticatedAs($user);
         Event::assertDispatchedTimes(Attempting::class, 6);
     }
@@ -171,20 +178,20 @@ final class AuthenticationRateLimitTest extends TestCase
         $email = 'person@example.com';
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
-            $this->post('/login', ['email' => $attempt % 2 ? strtoupper($email) : $email, 'password' => 'wrong']);
+            $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $attempt % 2 ? strtoupper($email) : $email, 'password' => 'wrong']);
         }
 
         $this->assertSame(5, RateLimiter::attempts('login:'.$email.'|127.0.0.1'));
 
-        $this->post('/login', ['email' => strtoupper($email), 'password' => 'wrong'])
+        $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => strtoupper($email), 'password' => 'wrong'])
             ->assertSessionHas('loginCooldown', 60);
         Event::assertDispatchedTimes(Attempting::class, 5);
 
-        $this->post('/login', ['email' => 'other@example.com', 'password' => 'wrong'])
+        $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => 'other@example.com', 'password' => 'wrong'])
             ->assertSessionHasErrors(['email' => 'Invalid email or password. Attempts left: 4']);
 
         $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.10'])
-            ->post('/login', ['email' => $email, 'password' => 'wrong'])
+            ->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $email, 'password' => 'wrong'])
             ->assertSessionHasErrors(['email' => 'Invalid email or password. Attempts left: 4']);
         $this->assertSame(1, RateLimiter::attempts('login:'.$email.'|192.0.2.10'));
         $this->assertSame(5, RateLimiter::attempts('login:'.$email.'|127.0.0.1'));
@@ -192,8 +199,8 @@ final class AuthenticationRateLimitTest extends TestCase
 
     public function test_invalid_login_input_does_not_consume_an_attempt(): void
     {
-        $this->post('/login', ['email' => 'person@example.com'])->assertSessionHasErrors('password');
-        $this->post('/login', ['email' => 'invalid', 'password' => 'wrong'])->assertSessionHasErrors('email');
+        $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => 'person@example.com'])->assertSessionHasErrors('password');
+        $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => 'invalid', 'password' => 'wrong'])->assertSessionHasErrors('email');
 
         $this->assertSame(0, RateLimiter::attempts('login:person@example.com|127.0.0.1'));
         $this->assertSame(0, RateLimiter::attempts('login:invalid|127.0.0.1'));
@@ -203,20 +210,20 @@ final class AuthenticationRateLimitTest extends TestCase
     public function test_registration_allows_five_requests_per_ip_then_blocks_until_ten_minutes(): void
     {
         for ($attempt = 0; $attempt < 5; $attempt++) {
-            $this->post('/register', [])->assertRedirect()->assertSessionHasErrors(['name', 'email', 'password']);
+            $this->post('/register', ['cf-turnstile-response' => 'test-token'])->assertRedirect()->assertSessionHasErrors(['name', 'email', 'password']);
         }
 
-        $this->post('/register', [])->assertStatus(429)->assertHeader('Retry-After', '600');
+        $this->post('/register', ['cf-turnstile-response' => 'test-token'])->assertStatus(429)->assertHeader('Retry-After', '600');
         $this->get('/register')->assertOk();
 
         $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.10'])
-            ->post('/register', [])->assertRedirect()->assertSessionHasErrors('email');
+            ->post('/register', ['cf-turnstile-response' => 'test-token'])->assertRedirect()->assertSessionHasErrors('email');
         $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1']);
 
         $this->travel(599)->seconds();
-        $this->post('/register', [])->assertStatus(429)->assertHeader('Retry-After', '1');
+        $this->post('/register', ['cf-turnstile-response' => 'test-token'])->assertStatus(429)->assertHeader('Retry-After', '1');
         $this->travel(1)->second();
-        $this->post('/register', [])->assertRedirect()->assertSessionHasErrors('email');
+        $this->post('/register', ['cf-turnstile-response' => 'test-token'])->assertRedirect()->assertSessionHasErrors('email');
 
         $this->assertDatabaseCount('users', 0);
     }

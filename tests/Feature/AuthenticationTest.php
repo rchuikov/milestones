@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
@@ -21,6 +22,15 @@ use Tests\TestCase;
 final class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['services.turnstile.secret_key' => 'test-secret']);
+        Http::preventStrayRequests();
+        Http::fake(['challenges.cloudflare.com/turnstile/v0/siteverify' => Http::response(['success' => true])]);
+    }
 
     public static function guestPages(): array
     {
@@ -42,6 +52,7 @@ final class AuthenticationTest extends TestCase
     {
         Notification::fake();
         $this->post('/register', [
+            'cf-turnstile-response' => 'test-token',
             'name' => 'New User', 'email' => 'new@example.com',
             'password' => 'secure-password', 'password_confirmation' => 'secure-password',
             'role' => 'admin', 'email_verified_at' => now(),
@@ -59,6 +70,7 @@ final class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
         $this->post('/register', [
+            'cf-turnstile-response' => 'test-token',
             'name' => '', 'email' => $user->email, 'password' => 'short', 'password_confirmation' => 'different',
         ])->assertSessionHasErrors(['name', 'email', 'password']);
         $this->assertDatabaseCount('users', 1);
@@ -69,7 +81,7 @@ final class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
         $this->withSession(['url.intended' => url('/profile')])
-            ->post('/login', ['email' => $user->email, 'password' => 'password', 'remember' => '1'])
+            ->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'password', 'remember' => '1'])
             ->assertRedirect('/profile')
             ->assertCookie(auth()->guard()->getRecallerName());
         $this->assertAuthenticatedAs($user);
@@ -78,7 +90,7 @@ final class AuthenticationTest extends TestCase
     public function test_wrong_password_is_rejected_without_flashing_password(): void
     {
         $user = User::factory()->create();
-        $this->from('/login')->post('/login', ['email' => $user->email, 'password' => 'wrong'])
+        $this->from('/login')->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'wrong'])
             ->assertRedirect('/login')->assertSessionHasErrors('email')
             ->assertSessionMissing('_old_input.password');
         $this->assertGuest();
@@ -87,7 +99,7 @@ final class AuthenticationTest extends TestCase
     public function test_google_only_user_cannot_log_in_with_a_password(): void
     {
         $user = User::factory()->create(['password' => null, 'external_id' => 'google-only']);
-        $this->post('/login', ['email' => $user->email, 'password' => 'password'])
+        $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'password'])
             ->assertSessionHasErrors('email');
         $this->assertGuest();
     }
@@ -175,7 +187,7 @@ final class AuthenticationTest extends TestCase
         $user = User::factory()->create();
 
         $this->from('/forgot-password')
-            ->post('/forgot-password', ['email' => $user->email])
+            ->post('/forgot-password', ['cf-turnstile-response' => 'test-token', 'email' => $user->email])
             ->assertRedirect('/forgot-password')
             ->assertSessionHas('flash', ['type' => 'success', 'message' => 'A password reset link has been sent.'])
             ->assertSessionHas('passwordResetSent', true);
@@ -188,7 +200,7 @@ final class AuthenticationTest extends TestCase
         Notification::fake();
         $user = User::factory()->create();
 
-        $this->from('/forgot-password')->post('/forgot-password', ['email' => $user->email])
+        $this->from('/forgot-password')->post('/forgot-password', ['cf-turnstile-response' => 'test-token', 'email' => $user->email])
             ->assertRedirect('/forgot-password')
             ->assertSessionHas('passwordResetSent', true)
             ->assertSessionHasInput('email', $user->email);
@@ -208,8 +220,8 @@ final class AuthenticationTest extends TestCase
 
     public function test_password_recovery_validates_email_and_rejects_unknown_users(): void
     {
-        $this->post('/forgot-password', ['email' => 'invalid'])->assertSessionHasErrors('email');
-        $this->post('/forgot-password', ['email' => 'missing@example.com'])->assertSessionHasErrors('email');
+        $this->post('/forgot-password', ['cf-turnstile-response' => 'test-token', 'email' => 'invalid'])->assertSessionHasErrors('email');
+        $this->post('/forgot-password', ['cf-turnstile-response' => 'test-token', 'email' => 'missing@example.com'])->assertSessionHasErrors('email');
     }
 
     public function test_password_recovery_is_throttled(): void
@@ -219,12 +231,14 @@ final class AuthenticationTest extends TestCase
         $user = User::factory()->create();
 
         $this->post('/forgot-password', [
+            'cf-turnstile-response' => 'test-token',
             'email' => $user->email,
         ])
             ->assertSessionHas('flash', ['type' => 'success', 'message' => 'A password reset link has been sent.'])
             ->assertSessionHas('passwordResetSent', true);
 
         $this->post('/forgot-password', [
+            'cf-turnstile-response' => 'test-token',
             'email' => $user->email,
         ])
             ->assertSessionHasErrors('email');
@@ -312,7 +326,7 @@ final class AuthenticationTest extends TestCase
         $this->withCookie(config('session.cookie'), $sessionId)->get('/')->assertRedirect(route('login'));
         $this->assertGuest();
 
-        $this->post('/login', ['email' => $user->email, 'password' => 'replacement-password'])
+        $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'replacement-password'])
             ->assertSessionHasNoErrors();
         $this->assertAuthenticatedAs($user);
     }

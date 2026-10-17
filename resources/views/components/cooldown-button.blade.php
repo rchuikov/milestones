@@ -41,7 +41,9 @@
                 const deadlineKey = `${button.dataset.storagePrefix}_available_at`;
                 const serverDeadline = Date.now() + Number(button.dataset.remainingSeconds) * 1000;
 
-                // Verification uses server state; password reset retains its local UX cooldown.
+                const form = button.closest('form');
+                let externallyBlocked = form?.dataset.externallyBlocked === '1';
+
                 if (! serverControlled && button.dataset.restart === '1') {
                     sessionStorage.setItem(
                         deadlineKey,
@@ -53,25 +55,30 @@
                     const deadline = serverControlled
                         ? serverDeadline
                         : Number(sessionStorage.getItem(deadlineKey));
-                    const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
 
-                    if (! remaining) {
+                    const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+                    const cooldownActive = remaining > 0;
+
+                    if (! cooldownActive) {
                         if (! serverControlled) {
                             sessionStorage.removeItem(deadlineKey);
                         }
 
-                        button.disabled = false;
                         button.textContent = label;
-
-                        return;
+                    } else {
+                        button.textContent =
+                            `${countdownLabel} `
+                            + `${String(Math.floor(remaining / 60)).padStart(2, '0')}:`
+                            + `${String(remaining % 60).padStart(2, '0')}`;
                     }
 
-                    button.disabled = true;
-                    button.textContent =
-                        `${countdownLabel} `
-                        + `${String(Math.floor(remaining / 60)).padStart(2, '0')}:`
-                        + `${String(remaining % 60).padStart(2, '0')}`;
+                    button.disabled = cooldownActive || externallyBlocked;
                 }
+
+                form?.addEventListener('submit-block-change', event => {
+                    externallyBlocked = event.detail.blocked;
+                    updateButton();
+                });
 
                 updateButton();
                 setInterval(updateButton, 1000);

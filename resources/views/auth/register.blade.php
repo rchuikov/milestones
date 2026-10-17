@@ -8,7 +8,11 @@
             Register
         </h1>
 
-        <form method="POST" action="{{ route('register.submit') }}">
+        <form
+            method="POST"
+            action="{{ route('register.submit') }}"
+            data-externally-blocked="1"
+        >
             @csrf
 
             <x-form.input
@@ -39,9 +43,12 @@
                 required
             />
 
+            <x-turnstile />
+
             <button
                 type="submit"
-                class="mt-2 w-full cursor-pointer rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-800"
+                disabled
+                class="mt-2 w-full cursor-pointer rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
                 Register
             </button>
