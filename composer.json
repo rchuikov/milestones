@@ -47,13 +47,17 @@
             "npm install --ignore-scripts",
             "npm run build"
         ],
-        "dev": [
-            "Composer\\Config::disableProcessTimeout",
-            "@php artisan dev"
-        ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",
-            "@php artisan test"
+            "@php artisan test",
+            "npm test"
+        ],
+        "post-install-cmd": [
+            "@php artisan migrate --force",
+            "@php artisan config:cache",
+            "@php artisan route:cache",
+            "@php artisan view:cache",
+            "@php artisan app:restart-services"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
