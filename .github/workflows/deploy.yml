@@ -73,6 +73,12 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Render maintenance page
+        env:
+          APP_URL: https://my-milestones.app
+        run: |
+          php artisan tinker --execute='file_put_contents(public_path("maintenance.html"), view("maintenance.index")->render());'
+
       - name: Configure SSH
         env:
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -85,6 +91,14 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
 
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Enable maintenance mode
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          rsync -az public/maintenance.html \
+            "$SSH_USER@$SSH_HOST:/var/www/my-milestones.app/public/maintenance.html"
 
       - name: Deploy to VPS
         env:
@@ -113,3 +127,11 @@ jobs:
               --no-interaction
             composer run deploy --no-interaction
           '
+
+      - name: Disable maintenance mode
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -o BatchMode=yes "$SSH_USER@$SSH_HOST" \
+            'rm -f /var/www/my-milestones.app/public/maintenance.html'
