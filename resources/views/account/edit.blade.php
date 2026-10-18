@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Profile')
-@section('page-title', 'Edit profile')
-@section('page-subtitle', 'Update your account information or change your password.')
+@section('title', 'Account')
+@section('page-title', 'Edit account')
+@section('page-subtitle', 'Update your email or change your password.')
 
 @section('page-actions')
     <a
@@ -21,24 +21,13 @@
 
     <form
         method="POST"
-        action="{{ route('profile.update') }}"
+        action="{{ route('account.update') }}"
         class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200"
     >
         @csrf
         @method('PATCH')
 
         <div class="space-y-5">
-            <x-form.input
-                name="name"
-                label="Name"
-                :value="auth()->user()->name"
-                :required="! $isSettingPassword"
-                :disabled="$isSettingPassword"
-                :autofocus="! $isSettingPassword"
-                class="disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
-                autocomplete="name"
-            />
-
             <x-form.input
                 name="email"
                 type="email"
@@ -59,7 +48,7 @@
             <div class="mt-5 space-y-5">
                 @if ($isSettingPassword)
                     <div class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-                        <p class="font-semibold">Set a password to edit your profile</p>
+                        <p class="font-semibold">Set a password to edit your account</p>
                         <p class="mt-1">
                             You will also be able to sign in with your email.
                             Google sign-in will remain available.
@@ -72,11 +61,8 @@
                             type="password"
                             label="Current password"
                             autocomplete="current-password"
+                            required
                         />
-
-                        <p class="-mt-2 text-xs text-gray-500">
-                            Required when changing your email or password.
-                        </p>
                     </div>
                 @endif
 

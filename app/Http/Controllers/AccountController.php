@@ -2,25 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\User\ProfileUpdater;
-use App\Http\Requests\UpdateProfileRequest;
+use App\Actions\User\AccountUpdater;
+use App\Http\Requests\UpdateAccountRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
-final class ProfileController extends Controller
+final class AccountController extends Controller
 {
     public function edit(): View
     {
-        return view('profile.edit');
+        return view('account.edit');
     }
 
     public function update(
-        UpdateProfileRequest $request,
-        ProfileUpdater $profileUpdater,
+        UpdateAccountRequest $request,
+        AccountUpdater $accountUpdater,
     ): RedirectResponse {
         $isSettingPassword = $request->user()->password === null;
 
-        $emailChanged = $profileUpdater->update(
+        $emailChanged = $accountUpdater->update(
             $request->user(),
             $request->validated(),
         );
@@ -28,7 +28,7 @@ final class ProfileController extends Controller
         return $emailChanged
             ? redirect()->route('verification.notice')
             : back()->success($isSettingPassword
-                ? 'Password set. You can now edit your profile and sign in with your email.'
-                : 'Profile updated.');
+                ? 'Password set. You can now edit your account and sign in with your email.'
+                : 'Account updated.');
     }
 }

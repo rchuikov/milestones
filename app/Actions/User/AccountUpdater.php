@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Services\VerificationEmailSender;
 use Illuminate\Support\Str;
 
-final class ProfileUpdater
+final class AccountUpdater
 {
     public function __construct(private VerificationEmailSender $verificationEmailSender) {}
 
@@ -22,7 +22,6 @@ final class ProfileUpdater
 
         $emailChanged = $user->email !== $data['email'];
 
-        $user->name = $data['name'];
         $user->email = $data['email'];
 
         if ($emailChanged) {

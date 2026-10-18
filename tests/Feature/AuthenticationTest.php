@@ -80,9 +80,9 @@ final class AuthenticationTest extends TestCase
     public function test_login_uses_intended_destination_and_remember_cookie(): void
     {
         $user = User::factory()->create();
-        $this->withSession(['url.intended' => url('/profile')])
+        $this->withSession(['url.intended' => url('/account')])
             ->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'password', 'remember' => '1'])
-            ->assertRedirect('/profile')
+            ->assertRedirect('/account')
             ->assertCookie(auth()->guard()->getRecallerName());
         $this->assertAuthenticatedAs($user);
     }

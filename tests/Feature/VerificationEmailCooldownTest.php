@@ -104,8 +104,8 @@ final class VerificationEmailCooldownTest extends TestCase
         $sender->send($user);
         $user->forceFill(['email_verified_at' => now()])->save();
 
-        $this->actingAs($user)->patch('/profile', [
-            'name' => $user->name, 'email' => 'new-address@example.com', 'current_password' => 'password',
+        $this->actingAs($user)->patch('/account', [
+            'email' => 'new-address@example.com', 'current_password' => 'password',
         ])->assertRedirect(route('verification.notice'));
         $user->refresh();
         $this->assertSame('new-address@example.com', $user->email);

@@ -1,8 +1,9 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MilestoneController;
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -63,8 +64,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/milestones/{milestone}/history', [MilestoneController::class, 'history'])
         ->name('milestones.history');
 
-    Route::get('/profile', [ProfileController::class, 'edit'])
-        ->name('profile');
-    Route::patch('/profile', [ProfileController::class, 'update'])
-        ->name('profile.update');
+    Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
+    Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+    Route::get('/account', [AccountController::class, 'edit'])
+        ->name('account');
+    Route::patch('/account', [AccountController::class, 'update'])
+        ->name('account.update');
 });

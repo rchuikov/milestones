@@ -27,7 +27,7 @@ final class MilestoneTest extends TestCase
 
     public static function protectedRoutes(): array
     {
-        return [['GET', '/'], ['GET', '/profile'], ['PATCH', '/profile'], ['GET', '/milestones/create'], ['POST', '/milestones'], ['GET', '/milestones/1/edit'], ['PUT', '/milestones/1'], ['DELETE', '/milestones/1'], ['GET', '/milestones/1/history'], ['POST', '/milestones/1/start'], ['POST', '/milestones/1/stop'], ['POST', '/milestones/1/reset']];
+        return [['GET', '/'], ['GET', '/account'], ['PATCH', '/account'], ['GET', '/settings'], ['PATCH', '/settings'], ['GET', '/milestones/create'], ['POST', '/milestones'], ['GET', '/milestones/1/edit'], ['PUT', '/milestones/1'], ['DELETE', '/milestones/1'], ['GET', '/milestones/1/history'], ['POST', '/milestones/1/start'], ['POST', '/milestones/1/stop'], ['POST', '/milestones/1/reset']];
     }
 
     #[DataProvider('protectedRoutes')]

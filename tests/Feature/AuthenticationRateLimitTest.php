@@ -139,9 +139,9 @@ final class AuthenticationRateLimitTest extends TestCase
             $this->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'wrong']);
         }
 
-        $this->withSession(['url.intended' => url('/profile')])
+        $this->withSession(['url.intended' => url('/account')])
             ->post('/login', ['cf-turnstile-response' => 'test-token', 'email' => $user->email, 'password' => 'password', 'remember' => '1'])
-            ->assertRedirect('/profile')
+            ->assertRedirect('/account')
             ->assertCookie(auth()->guard()->getRecallerName())
             ->assertSessionMissing('loginEmail')
             ->assertSessionMissing('loginCooldown')

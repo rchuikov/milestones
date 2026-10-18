@@ -43,9 +43,13 @@
                             <x-heroicon-o-chevron-down class="h-4 w-4"/>
                         </summary>
                         <div class="absolute right-0 z-50 mt-2 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-                            <a href="{{ route('profile') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                <x-heroicon-o-cog-6-tooth class="h-5 w-5"/>
-                                Profile
+                            <a href="{{ route('settings') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <x-heroicon-o-cog-6-tooth class="size-4"/>
+                                Settings
+                            </a>
+                            <a href="{{ route('account') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <x-heroicon-o-user-circle class="size-4"/>
+                                Account
                             </a>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
@@ -54,7 +58,7 @@
                                     class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
                                 >
                                     <x-heroicon-o-arrow-right-start-on-rectangle class="h-4 w-4"/>
-                                    Logout
+                                    Log out
                                 </button>
                             </form>
                         </div>

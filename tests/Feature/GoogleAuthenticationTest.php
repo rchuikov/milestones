@@ -120,7 +120,7 @@ final class GoogleAuthenticationTest extends TestCase
         $user = User::factory()->create(['external_id' => 'google-123', 'email' => 'changed@example.com']);
         $original = $user->fresh()->getAttributes();
         $this->googleUser();
-        $this->withSession(['url.intended' => url('/profile')])->get('/auth/google/callback')->assertRedirect('/profile');
+        $this->withSession(['url.intended' => url('/account')])->get('/auth/google/callback')->assertRedirect('/account');
         $this->assertAuthenticatedAs($user);
         $this->assertDatabaseCount('users', 1);
         $this->assertSame($original, $user->fresh()->getAttributes());

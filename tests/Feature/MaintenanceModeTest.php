@@ -59,7 +59,9 @@ final class MaintenanceModeTest extends TestCase
     {
         return [
             'home' => ['GET', '/'],
-            'profile' => ['GET', '/profile'],
+            'account' => ['GET', '/account'],
+            'settings' => ['GET', '/settings'],
+            'settings update' => ['PATCH', '/settings'],
             'registration form' => ['GET', '/register'],
             'registration submission' => ['POST', '/register'],
             'password recovery form' => ['GET', '/forgot-password'],
@@ -96,9 +98,12 @@ final class MaintenanceModeTest extends TestCase
             ->assertSee('action="'.route('logout').'"', false)
             ->assertSee('Log out');
 
-        $this->patch('/profile', ['name' => 'Changed name', 'email' => $user->email])
+        $this->patch('/settings', ['name' => 'Changed name'])
             ->assertStatus(503);
         $this->assertSame($user->name, $user->fresh()->name);
+        $this->patch('/account', ['email' => 'changed@example.com', 'current_password' => 'password'])
+            ->assertStatus(503);
+        $this->assertSame($user->email, $user->fresh()->email);
 
         $this->post('/logout')->assertRedirect('/');
         $this->assertGuest();
@@ -141,18 +146,18 @@ final class MaintenanceModeTest extends TestCase
         Auth::forgetGuards();
 
         $this->get('/')->assertStatus($status);
-        $this->get('/profile')->assertStatus($status);
+        $this->get('/account')->assertStatus($status);
+        $this->get('/settings')->assertStatus($status);
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_admin_can_update_profile_during_maintenance(): void
+    public function test_admin_can_update_settings_during_maintenance(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin]);
         $this->enableMaintenance();
 
-        $this->actingAs($admin)->patch('/profile', [
+        $this->actingAs($admin)->patch('/settings', [
             'name' => 'Updated Admin',
-            'email' => $admin->email,
         ])->assertRedirect();
 
         $this->assertSame('Updated Admin', $admin->fresh()->name);
@@ -190,6 +195,6 @@ final class MaintenanceModeTest extends TestCase
         File::delete(storage_path('framework/app-maintenance'));
 
         $this->get('/')->assertOk();
-        $this->get('/profile')->assertOk();
+        $this->get('/account')->assertOk();
     }
 }
