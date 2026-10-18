@@ -32,9 +32,9 @@
                         style="background-color: {{ $milestone->color }}"
                     ></div>
                 @endif
-                <div class="flex flex-col gap-6 sm:grid sm:h-32 sm:grid-cols-[minmax(260px,auto)_1fr_auto] sm:items-center sm:gap-6">
+                <div class="flex flex-col gap-6 sm:grid sm:min-h-32 sm:grid-cols-[minmax(260px,auto)_1fr_auto] sm:items-center sm:gap-6">
                     <div class="min-w-0">
-                        <h2 class="truncate text-2xl font-semibold text-gray-900">
+                        <h2 class="wrap-break-word whitespace-normal text-2xl font-semibold text-gray-900">
                             {{ $milestone->name }}
                         </h2>
 
