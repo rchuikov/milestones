@@ -2,83 +2,56 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\UserRole;
-use App\Models\User;
-use App\Rules\Turnstile;
+use App\Actions\User\LoginUser;
+use App\Actions\User\RegisterUser;
+use App\Actions\User\ResetUserPassword;
+use App\Http\Requests\ForgotPasswordRequest;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\ResetPasswordRequest;
+use App\Services\GoogleAuthenticator;
 use App\Services\VerificationEmailSender;
-use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\ResponseException;
-use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password as PasswordRule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Laravel\Socialite\Facades\Socialite;
-use Laravel\Socialite\Two\InvalidStateException;
 
 final class AuthController extends Controller
 {
-    private const int LOGIN_ATTEMPTS = 5;
-
-    public function showLogin(Request $request): View
+    public function showLogin(Request $request, LoginUser $loginUser): View
     {
-        $email = $request->session()->get('loginEmail');
-        $key = 'login:'.Str::lower($email ?? '').'|'.$request->ip();
-
         return view('auth.login', [
-            'loginEmail' => $email,
-            'loginCooldown' => $email !== null && RateLimiter::tooManyAttempts($key, self::LOGIN_ATTEMPTS)
-                ? RateLimiter::availableIn($key)
-                : 0,
+            'loginEmail' => $request->session()->get('loginEmail'),
+            'loginCooldown' => $loginUser->remainingSeconds($request->session()->get('loginEmail'), $request->ip()),
         ]);
     }
 
-    public function login(Request $request): RedirectResponse
+    public function login(LoginRequest $request, LoginUser $loginUser): RedirectResponse
     {
-        $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-            'cf-turnstile-response' => ['bail', 'required', 'string', 'max:2048', new Turnstile],
-        ]);
+        $email = $request->validated('email');
+        $ip = $request->ip();
+        $request->session()->put('loginEmail', $email);
 
-        $credentials = $request->only('email', 'password');
+        if ($loginUser->handle($request->safe()->only(['email', 'password']), $request->boolean('remember'), $ip)) {
+            $request->session()->forget('loginEmail');
+            $request->session()->regenerate();
 
-        $key = 'login:'.Str::lower($credentials['email']).'|'.$request->ip();
-        $request->session()->put('loginEmail', $credentials['email']);
-
-        if (! RateLimiter::tooManyAttempts($key, self::LOGIN_ATTEMPTS)) {
-            if (Auth::attempt($credentials, $request->boolean('remember'))) {
-                RateLimiter::clear($key);
-                $request->session()->forget('loginEmail');
-                $request->session()->regenerate();
-
-                return redirect()->intended();
-            }
-
-            RateLimiter::hit($key);
+            return redirect()->intended();
         }
 
-        if (RateLimiter::tooManyAttempts($key, self::LOGIN_ATTEMPTS)) {
+        if ($cooldown = $loginUser->remainingSeconds($email, $ip)) {
             return back()
                 ->danger('Too many login attempts. Try again later.')
-                ->with('loginCooldown', RateLimiter::availableIn($key))
+                ->with('loginCooldown', $cooldown)
                 ->onlyInput('email', 'remember');
         }
 
-        $attemptsLeft = self::LOGIN_ATTEMPTS - RateLimiter::attempts($key);
-
         return back()
-            ->withErrors([
-                'email' => "Invalid email or password. Attempts left: {$attemptsLeft}",
-            ])
+            ->withErrors(['email' => "Invalid email or password. Attempts left: {$loginUser->attemptsLeft($email, $ip)}"])
             ->onlyInput('email', 'remember');
     }
 
@@ -97,27 +70,9 @@ final class AuthController extends Controller
         return view('auth.register');
     }
 
-    public function register(Request $request): RedirectResponse
+    public function register(RegisterRequest $request, RegisterUser $registerUser): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => [
-                'required',
-                'confirmed',
-                PasswordRule::min(8),
-            ],
-            'cf-turnstile-response' => ['bail', 'required', 'string', 'max:2048', new Turnstile],
-        ]);
-
-        $user = new User;
-        $user->name = $data['name'];
-        $user->email = $data['email'];
-        $user->password = $data['password'];
-        $user->role = UserRole::User;
-        $user->save();
-
-        event(new Registered($user));
+        $user = $registerUser->handle($request->validated());
 
         Auth::login($user);
 
@@ -160,15 +115,10 @@ final class AuthController extends Controller
         return view('auth.forgot-password');
     }
 
-    public function forgotPassword(Request $request): RedirectResponse
+    public function forgotPassword(ForgotPasswordRequest $request): RedirectResponse
     {
-        $request->validate([
-            'email' => ['required', 'email'],
-            'cf-turnstile-response' => ['bail', 'required', 'string', 'max:2048', new Turnstile],
-        ]);
-
         $status = Password::sendResetLink(
-            $request->only('email')
+            $request->safe()->only(['email'])
         );
 
         return $status === Password::ResetLinkSent
@@ -189,37 +139,9 @@ final class AuthController extends Controller
         ]);
     }
 
-    public function resetPassword(Request $request): RedirectResponse
+    public function resetPassword(ResetPasswordRequest $request, ResetUserPassword $resetUserPassword): RedirectResponse
     {
-        $data = $request->validate([
-            'token' => ['required'],
-            'email' => ['required', 'email'],
-            'password' => [
-                'required',
-                'confirmed',
-                PasswordRule::min(8),
-            ],
-        ]);
-
-        $status = Password::reset(
-            $data,
-            function (User $user, string $password) {
-                DB::transaction(function () use ($user, $password) {
-                    $user->password = $password;
-                    $user->setRememberToken(Str::random(60));
-                    $user->save();
-
-                    if (config('session.driver') === 'database') {
-                        DB::connection(config('session.connection'))
-                            ->table(config('session.table'))
-                            ->where('user_id', $user->id)
-                            ->delete();
-                    }
-                });
-
-                event(new PasswordReset($user));
-            }
-        );
+        $status = $resetUserPassword->handle($request->validated());
 
         return $status === Password::PasswordReset
             ? redirect()->route('login')->success(__($status))
@@ -233,7 +155,7 @@ final class AuthController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
-    public function handleGoogleCallback(Request $request): RedirectResponse
+    public function handleGoogleCallback(Request $request, GoogleAuthenticator $authenticator): RedirectResponse
     {
         if ($request->query->has('error')) {
             $request->session()->forget('state');
@@ -248,86 +170,9 @@ final class AuthController extends Controller
         }
 
         try {
-            $googleUser = Socialite::driver('google')->user();
-        } catch (InvalidStateException) {
-            return redirect()
-                ->route('login')
-                ->withErrors([
-                    'email' => 'Your Google sign-in session is invalid or has expired. Please try again.',
-                ]);
-        } catch (GuzzleException $exception) {
-            Log::warning('Google sign-in request failed.', [
-                'exception_type' => $exception::class,
-                'status' => $exception instanceof ResponseException
-                    ? $exception->getResponse()?->getStatusCode()
-                    : null,
-            ]);
-
-            return redirect()
-                ->route('login')
-                ->withErrors([
-                    'email' => 'Google sign-in is temporarily unavailable. Please try again later.',
-                ]);
-        }
-
-        $googleData = $googleUser->user;
-        $email = $googleUser->getEmail();
-
-        $isGoogleAuthoritative = str_ends_with(strtolower($email), '@gmail.com')
-            || (
-                ($googleData['email_verified'] ?? false)
-                && ! empty($googleData['hd'])
-            );
-
-        $user = User::query()
-            ->where('external_id', $googleUser->getId())
-            ->first();
-
-        if (! $user) {
-            $user = User::query()
-                ->where('email', $email)
-                ->first();
-
-            if ($user && $user->external_id !== null) {
-                return redirect()
-                    ->route('login')
-                    ->withErrors([
-                        'email' => 'This account is linked to another Google account. Use your original sign-in method.',
-                    ]);
-            }
-
-            if ($user && ! $user->email_verified_at) {
-                return redirect()
-                    ->route('login')
-                    ->withErrors([
-                        'email' => 'An unverified account with this email already exists. Recover access to that account first.',
-                    ]);
-            }
-        }
-
-        if (! $user) {
-            $user = new User;
-            $user->name = $googleUser->getName() ?: $email;
-            $user->email = $email;
-            $user->external_id = $googleUser->getId();
-            $user->email_verified_at = $isGoogleAuthoritative
-                ? now()
-                : null;
-            $user->role = UserRole::User;
-            $user->save();
-
-            event(new Registered($user));
-        } elseif (! $user->external_id) {
-            if (! $isGoogleAuthoritative) {
-                return redirect()
-                    ->route('login')
-                    ->withErrors([
-                        'email' => 'An account with this email already exists. Sign in with your password.',
-                    ]);
-            }
-
-            $user->external_id = $googleUser->getId();
-            $user->save();
+            $user = $authenticator->authenticate();
+        } catch (ValidationException $exception) {
+            return redirect()->route('login')->withErrors($exception->errors());
         }
 
         Auth::login($user);
