@@ -1,13 +1,16 @@
-<div
-    class="cf-turnstile"
-    data-sitekey="{{ config('services.turnstile.site_key') }}"
-    data-size="flexible"
-    data-language="{{ app()->getLocale() === 'sr_Latn' ? 'sr' : app()->getLocale() }}"
-    data-callback="turnstileSuccess"
-    data-expired-callback="turnstileBlocked"
-    data-error-callback="turnstileError"
-    data-timeout-callback="turnstileBlocked"
-></div>
+<div data-turnstile-container>
+    <div
+        class="cf-turnstile max-sm:w-full max-sm:data-[size=compact]:flex max-sm:data-[size=compact]:justify-center"
+        data-sitekey="{{ config('services.turnstile.site_key') }}"
+        data-size="flexible"
+        data-theme="light"
+        data-language="{{ app()->getLocale() === 'sr_Latn' ? 'sr' : app()->getLocale() }}"
+        data-callback="turnstileSuccess"
+        data-expired-callback="turnstileBlocked"
+        data-error-callback="turnstileError"
+        data-timeout-callback="turnstileBlocked"
+    ></div>
+</div>
 
 @error('cf-turnstile-response')
 <div class="mb-4 text-sm text-red-600">
@@ -41,11 +44,43 @@
     @push('scripts')
         <script>
             const turnstileWidget = document.querySelector('.cf-turnstile');
+            const turnstileContainer = turnstileWidget.closest('[data-turnstile-container]');
             const turnstileForm = turnstileWidget.closest('form');
             const turnstileWarning = turnstileForm.querySelector('[data-turnstile-warning]');
             const turnstileRetry = turnstileForm.querySelector('[data-turnstile-retry]');
 
             let turnstileScriptLoaded = false;
+            let turnstileId = null;
+            let turnstileConfiguration = null;
+
+            function renderTurnstile() {
+                const mobile = window.matchMedia('(width < 640px)').matches;
+                const size = mobile && turnstileContainer.getBoundingClientRect().width < 300
+                    ? 'compact'
+                    : 'flexible';
+                const theme = 'light';
+                const configuration = `${size}:${theme}`;
+
+                if (configuration === turnstileConfiguration) {
+                    return;
+                }
+
+                if (turnstileId !== null) {
+                    setSubmitBlocked(true);
+                    window.turnstile.remove(turnstileId);
+                }
+
+                turnstileWidget.dataset.size = size;
+                turnstileWidget.dataset.theme = theme;
+                turnstileConfiguration = configuration;
+                turnstileId = window.turnstile.render(turnstileWidget, { size, theme });
+            }
+
+            new ResizeObserver(() => {
+                if (turnstileScriptLoaded) {
+                    renderTurnstile();
+                }
+            }).observe(turnstileContainer);
 
             function showTurnstileWarning() {
                 turnstileWarning.classList.remove('hidden');
@@ -73,6 +108,7 @@
                 turnstileScriptLoaded = true;
                 clearTimeout(turnstileLoadTimeout);
                 hideTurnstileWarning();
+                renderTurnstile();
             }
 
             function turnstileSuccess() {
@@ -105,7 +141,7 @@
         </script>
 
         <script
-            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
             onload="turnstileScriptReady()"
             onerror="turnstileError()"
             async

@@ -222,11 +222,12 @@ final class TurnstileTest extends TestCase
         $response = $this->get($path)->assertOk()
             ->assertSee('data-externally-blocked="1"', false)
             ->assertSee('data-sitekey="test-site"', false)
+            ->assertSee('data-theme="light"', false)
             ->assertSee('data-callback="turnstileSuccess"', false)
             ->assertSee('data-expired-callback="turnstileBlocked"', false)
             ->assertSee('data-error-callback="turnstileError"', false)
             ->assertSee('data-timeout-callback="turnstileBlocked"', false);
-        $this->assertSame(1, substr_count($response->getContent(), 'src="https://challenges.cloudflare.com/turnstile/v0/api.js"'));
+        $this->assertSame(1, substr_count($response->getContent(), 'src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"'));
         $this->assertMatchesRegularExpression('/<button\b[^>]*type="submit"[^>]*\sdisabled(?:\s|=)/s', $response->getContent());
         Http::assertNothingSent();
     }

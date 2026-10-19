@@ -4,7 +4,7 @@
 @section('page-title', __('Edit account'))
 @section('page-subtitle', __('Update your email or change your password.'))
 
-@section('page-actions')
+@section('page-back')
     <a
         href="{{ route('milestones.index') }}"
         class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"

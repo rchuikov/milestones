@@ -32,7 +32,7 @@
                         style="background-color: {{ $milestone->color }}"
                     ></div>
                 @endif
-                <div class="flex flex-col gap-6 sm:grid sm:min-h-32 sm:grid-cols-[minmax(260px,auto)_1fr_auto] sm:items-center sm:gap-6">
+                <div class="flex flex-col gap-6 max-sm:gap-0 sm:grid sm:min-h-32 sm:grid-cols-[minmax(260px,auto)_1fr_auto] sm:items-center sm:gap-6">
                     <div class="min-w-0">
                         <h2 class="wrap-break-word whitespace-normal text-2xl font-semibold text-gray-900">
                             {{ $milestone->name }}
@@ -48,7 +48,7 @@
                                 >
                                 </div>
 
-                                <div class="mt-1 flex items-center gap-1 text-base text-gray-500">
+                                <div class="mt-1 flex items-center gap-1 text-base text-gray-500 max-sm:flex-wrap">
                                         <span>
                                             {{ __('Since :date', ['date' => $currentPeriod->started_at->format('d.m.Y')]) }}
                                         </span>
@@ -64,7 +64,7 @@
                         </div>
                     </div>
 
-                    <div class="flex min-w-0 flex-wrap items-center justify-center gap-2">
+                    <div class="flex min-w-0 flex-wrap items-center justify-center gap-2 max-sm:mt-6 max-sm:[&:not(:has(span))]:hidden">
                         @if ($currentPeriod)
                             @include('milestones._anniversaries', [
                                 'milestone' => $milestone,
@@ -73,8 +73,8 @@
                         @endif
                     </div>
 
-                    <div class="flex shrink-0 flex-col items-end justify-end gap-3 sm:justify-self-end">
-                        <div class="flex items-center gap-2">
+                    <div class="flex shrink-0 flex-col items-end justify-end gap-3 max-sm:mt-6 max-sm:w-full max-sm:min-w-0 max-sm:items-center sm:justify-self-end">
+                        <div class="flex items-center gap-2 max-sm:w-full max-sm:flex-wrap max-sm:justify-center">
                             @if ($currentPeriod)
                                 <form method="POST" action="{{ route('milestones.reset', $milestone) }}">
                                     @csrf
@@ -114,7 +114,7 @@
                             @endif
                         </div>
 
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 max-sm:w-full max-sm:flex-wrap max-sm:justify-center">
                             <a
                                 href="{{ route('milestones.history', $milestone) }}"
                                 class="inline-flex cursor-pointer items-center gap-1.5 px-2 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"

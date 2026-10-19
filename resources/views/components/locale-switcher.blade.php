@@ -2,7 +2,7 @@
 <form
     method="POST"
     action="{{ route('locale.update') }}"
-    class="flex shrink-0 items-center gap-2"
+    class="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2 self-end"
 >
     @csrf
 

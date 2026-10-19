@@ -12,7 +12,7 @@
 @section('page-title', $isEdit ? __('Edit milestone') : __('Create milestone'))
 @section('page-subtitle', $milestone->name ?? '')
 
-@section('page-actions')
+@section('page-back')
     <a
         href="{{ route('milestones.index') }}"
         class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"

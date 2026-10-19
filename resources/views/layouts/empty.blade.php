@@ -11,7 +11,7 @@
 
 <body class="min-h-screen bg-gray-100 text-gray-900">
 
-<main class="flex min-h-screen items-center justify-center px-4 py-8">
+<main class="flex min-h-screen items-center justify-center px-4 py-8 max-sm:px-2">
     <div class="w-full max-w-md">
         <a
             href="/"
@@ -30,13 +30,13 @@
 
         <x-flash-message/>
 
-        <div class="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-            <div class="mb-6 flex items-start justify-between gap-4">
+        <div class="rounded-lg border border-gray-200 bg-white p-8 pt-4 shadow-sm max-sm:p-4 max-sm:px-3">
+            <div class="mb-6 flex flex-col items-start gap-1">
+                <x-locale-switcher/>
+
                 <h1 class="min-w-0 wrap-break-word text-2xl font-semibold">
                     @yield('heading')
                 </h1>
-
-                <x-locale-switcher/>
             </div>
 
             @yield('content')

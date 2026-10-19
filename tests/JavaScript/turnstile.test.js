@@ -7,10 +7,19 @@ const turnstileBlade = await readFile(new URL('../../resources/views/components/
 const cooldownBlade = await readFile(new URL('../../resources/views/components/cooldown-button.blade.php', import.meta.url), 'utf8');
 const script = blade => blade.match(/<script>([\s\S]*?)<\/script>/)[1];
 
-function render({ cooldown = false, remaining = 0, turnstileFirst = true } = {}) {
+function render({ cooldown = false, remaining = 0, turnstileFirst = true, viewportWidth = 1280, containerWidth = 400, widgetWidth = 150 } = {}) {
     let now = 100000;
     let tick;
     let reloads = 0;
+    let resized;
+    const renders = [];
+    const removals = [];
+    const container = { getBoundingClientRect: () => ({ width: containerWidth }) };
+    const widget = {
+        dataset: {},
+        closest: selector => selector === '[data-turnstile-container]' ? container : form,
+        getBoundingClientRect: () => ({ width: widgetWidth }),
+    };
     const timeouts = new Map();
     const listeners = {};
     const events = [];
@@ -56,7 +65,7 @@ function render({ cooldown = false, remaining = 0, turnstileFirst = true } = {})
         document: {
             querySelector(selector) {
                 assert.equal(selector, '.cf-turnstile');
-                return { closest: () => form };
+                return widget;
             },
             querySelectorAll: () => [button],
         },
@@ -72,7 +81,22 @@ function render({ cooldown = false, remaining = 0, turnstileFirst = true } = {})
             return 1;
         },
         clearTimeout(id) { timeouts.delete(id); },
-        window: { location: { reload() { reloads++; } } },
+        window: {
+            location: { reload() { reloads++; } },
+            matchMedia: () => ({ matches: viewportWidth < 640 }),
+            turnstile: {
+                render(element, options) {
+                    assert.equal(element, widget);
+                    renders.push({ size: options.size, theme: options.theme });
+                    return renders.length;
+                },
+                remove(id) { removals.push(id); },
+            },
+        },
+        ResizeObserver: class {
+            constructor(callback) { resized = callback; }
+            observe(element) { assert.equal(element, container); }
+        },
         setInterval(callback) { tick = callback; },
     });
     const sources = cooldown
@@ -81,7 +105,12 @@ function render({ cooldown = false, remaining = 0, turnstileFirst = true } = {})
     for (const source of sources) vm.runInContext(script(source), context);
 
     return {
-        button, form, events,
+        button, form, events, renders, removals,
+        resize(width, availableWidth) {
+            viewportWidth = width;
+            containerWidth = availableWidth;
+            resized();
+        },
         get warningVisible() { return !warningClasses.has('hidden'); },
         get reloads() { return reloads; },
         retry() { retryListeners.click(); },
@@ -178,4 +207,60 @@ test('script load error shows warning immediately and Retry reloads the page', (
     assert.equal(page.reloads, 0);
     page.retry();
     assert.equal(page.reloads, 1);
+});
+
+for (const [viewportWidth, containerWidth, size, theme] of [
+    [320, 254, 'compact', 'light'],
+    [390, 324, 'flexible', 'light'],
+    [640, 254, 'flexible', 'light'],
+    [1280, 400, 'flexible', 'light'],
+]) {
+    test(`Turnstile chooses ${size}/${theme} at ${viewportWidth}px`, () => {
+        const page = render({ viewportWidth, containerWidth });
+        assert.equal(page.renders.length, 0);
+        page.callback('turnstileScriptReady');
+        assert.deepEqual(page.renders, [{ size, theme }]);
+        page.resize(viewportWidth, containerWidth);
+        assert.equal(page.renders.length, 1);
+    });
+}
+
+test('resizing replaces verification only when widget configuration changes', () => {
+    const page = render({ viewportWidth: 320, containerWidth: 254 });
+    page.resize(360, 294);
+    assert.equal(page.renders.length, 0);
+    page.callback('turnstileScriptReady');
+    page.callback('turnstileSuccess');
+    page.resize(375, 309);
+    assert.deepEqual(page.removals, [1]);
+    assert.deepEqual(page.renders.at(-1), { size: 'flexible', theme: 'light' });
+    assert.equal(page.button.disabled, true);
+    page.callback('turnstileSuccess');
+    page.resize(430, 364);
+    assert.equal(page.renders.length, 2);
+    assert.equal(page.button.disabled, false);
+    page.resize(768, 400);
+    assert.deepEqual(page.removals, [1]);
+    assert.equal(page.renders.length, 2);
+    assert.deepEqual(page.renders.at(-1), { size: 'flexible', theme: 'light' });
+    assert.equal(page.button.disabled, false);
+});
+
+test('replacement verification preserves an active login cooldown', () => {
+    const page = render({ cooldown: true, remaining: 60, viewportWidth: 320, containerWidth: 254 });
+    page.callback('turnstileScriptReady');
+    page.callback('turnstileSuccess');
+    page.resize(390, 324);
+    page.callback('turnstileSuccess');
+    assert.equal(page.button.disabled, true);
+    page.advance(60);
+    assert.equal(page.button.disabled, false);
+});
+
+test('a compact or not-yet-laid-out widget cannot force compact mode in a wide form', () => {
+    for (const widgetWidth of [0, 150]) {
+        const page = render({ viewportWidth: 390, containerWidth: 324, widgetWidth });
+        page.callback('turnstileScriptReady');
+        assert.deepEqual(page.renders, [{ size: 'flexible', theme: 'light' }]);
+    }
 });

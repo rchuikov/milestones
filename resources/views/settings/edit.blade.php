@@ -4,7 +4,7 @@
 @section('page-title', __('Settings'))
 @section('page-subtitle', __('Manage your personal settings.'))
 
-@section('page-actions')
+@section('page-back')
     <a
         href="{{ route('milestones.index') }}"
         class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"

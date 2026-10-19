@@ -24,7 +24,7 @@
                         class="relative z-10 h-16 w-16"
                     >
 
-                    <span class="text-xl font-semibold leading-none">
+                    <span class="text-xl font-semibold leading-none max-sm:hidden">
                     <span class="text-sky-600">My</span>
                     <span class="text-blue-800">Milestones</span>
                 </span>
@@ -34,7 +34,8 @@
                     <details class="relative">
                         <summary class="flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-950">
                             <x-heroicon-o-user-circle class="h-5 w-5"/>
-                            <span>
+                            <span class="sr-only sm:hidden">{{ __('User menu') }}</span>
+                            <span class="max-sm:hidden">
                             {{ auth()->user()->name }}
                             <span class="text-gray-400">
                                 ({{ auth()->user()->email }})
@@ -42,7 +43,11 @@
                         </span>
                             <x-heroicon-o-chevron-down class="h-4 w-4"/>
                         </summary>
-                        <div class="absolute right-0 z-50 mt-2 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+                        <div class="absolute right-0 z-50 mt-2 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg max-sm:w-[min(20rem,calc(100vw-2rem))]">
+                            <div class="hidden border-b border-gray-100 px-4 py-3 text-sm [overflow-wrap:anywhere] max-sm:block">
+                                <div class="font-medium text-gray-900">{{ auth()->user()->name }}</div>
+                                <div class="mt-1 text-gray-500">{{ auth()->user()->email }}</div>
+                            </div>
                             <a href="{{ route('settings') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <x-heroicon-o-cog-6-tooth class="size-4"/>
                                 {{ __('Settings') }}
@@ -72,8 +77,8 @@
     <main class="flex-1">
         <div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
             @if (trim($__env->yieldContent('page-title')))
-                <div class="mb-8 flex items-start justify-between gap-4 px-2">
-                    <div>
+                <div class="mb-8 flex items-start justify-between gap-4 px-2 max-sm:flex-wrap max-sm:items-center">
+                    <div class="max-sm:min-w-0 max-sm:max-w-full">
                         <h1 class="text-3xl font-semibold tracking-tight text-gray-900">
                             @yield('page-title')
                         </h1>
@@ -84,6 +89,12 @@
                             </p>
                         @endif
                     </div>
+
+                    @hasSection('page-back')
+                        <div class="shrink-0 max-sm:order-first max-sm:w-full">
+                            @yield('page-back')
+                        </div>
+                    @endif
 
                     @hasSection('page-actions')
                         <div class="shrink-0">

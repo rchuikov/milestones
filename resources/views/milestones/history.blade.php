@@ -23,7 +23,7 @@
 @section('page-title', __('History'))
 @section('page-subtitle', $milestone->name)
 
-@section('page-actions')
+@section('page-back')
     <a
         href="{{ route('milestones.index') }}"
         class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
@@ -34,10 +34,13 @@
 @endsection
 
 @section('content')
-    <div class="mb-6 grid gap-4 sm:grid-cols-2">
-        <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+    <h2 class="mb-3 px-2 text-lg font-semibold text-gray-900 sm:hidden">{{ __('Summary') }}</h2>
+
+    <div class="mb-6 grid gap-4 max-sm:gap-0 max-sm:rounded-xl max-sm:bg-gray-50 max-sm:p-5 max-sm:ring-1 max-sm:ring-gray-200 sm:grid-cols-2">
+        <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 max-sm:rounded-none max-sm:bg-transparent max-sm:p-0 max-sm:shadow-none max-sm:ring-0">
             <div class="text-sm font-medium text-gray-500">
-                {{ __('Total') }}
+                <span class="max-sm:hidden">{{ __('Total') }}</span>
+                <span class="sm:hidden">{{ __('Total across all periods') }}</span>
             </div>
 
             <div class="mt-1 text-xl font-semibold text-gray-900">
@@ -45,7 +48,7 @@
             </div>
         </div>
 
-        <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+        <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 max-sm:mt-4 max-sm:rounded-none max-sm:border-t max-sm:border-gray-200 max-sm:bg-transparent max-sm:p-0 max-sm:pt-4 max-sm:shadow-none max-sm:ring-0">
             <div class="text-sm font-medium text-gray-500">
                 {{ __('Current period') }}
             </div>
@@ -59,6 +62,8 @@
             </div>
         </div>
     </div>
+
+    <h2 class="mb-3 px-2 text-lg font-semibold text-gray-900 sm:hidden">{{ __('Periods') }}</h2>
 
     <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
         @forelse ($periods as $period)
