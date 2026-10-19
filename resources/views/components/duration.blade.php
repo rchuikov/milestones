@@ -5,7 +5,7 @@
 
 <span>
     @if ($seconds < 60)
-        less than a minute
+        {{ __('less than a minute') }}
     @else
         {{ \Carbon\CarbonInterval::seconds($seconds - ($seconds % 60))
             ->cascade()
@@ -17,6 +17,6 @@
     @endif
 
     <span class="whitespace-nowrap text-gray-500">
-        ({{ $days }} {{ $days === 1 ? 'day' : 'days' }})
+        ({{ trans_choice(':count day|:count days', $days) }})
     </span>
 </span>

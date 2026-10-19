@@ -17,6 +17,7 @@ final class CheckMaintenanceMode
             && ! $request->routeIs(
                 'login',
                 'login.submit',
+                'locale.update',
                 'auth.google',
                 'auth.google.callback',
                 'logout',

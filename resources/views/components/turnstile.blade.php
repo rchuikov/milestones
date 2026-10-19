@@ -2,6 +2,7 @@
     class="cf-turnstile"
     data-sitekey="{{ config('services.turnstile.site_key') }}"
     data-size="flexible"
+    data-language="{{ app()->getLocale() === 'sr_Latn' ? 'sr' : app()->getLocale() }}"
     data-callback="turnstileSuccess"
     data-expired-callback="turnstileBlocked"
     data-error-callback="turnstileError"
@@ -20,11 +21,11 @@
     class="mt-3 hidden rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
 >
     <p class="font-medium">
-        Security verification is unavailable.
+        {{ __('Security verification is unavailable.') }}
     </p>
 
     <p class="mt-1">
-        Please check your connection or browser extensions and try again.
+        {{ __('Please check your connection or browser extensions and try again.') }}
     </p>
 
     <button
@@ -32,7 +33,7 @@
         data-turnstile-retry
         class="mt-3 cursor-pointer rounded-md bg-amber-700 px-4 py-2 font-medium text-white hover:bg-amber-800"
     >
-        Retry
+        {{ __('Retry') }}
     </button>
 </div>
 

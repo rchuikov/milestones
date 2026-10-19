@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\Locale;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class UpdateSettingsRequest extends FormRequest
 {
@@ -10,6 +12,7 @@ final class UpdateSettingsRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'locale' => ['required', Rule::enum(Locale::class)],
         ];
     }
 }

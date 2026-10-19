@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\User\SendVerificationEmail;
+use App\Support\LocaleMessageSelector;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -25,15 +26,17 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->app['translator']->setSelector(new LocaleMessageSelector);
+
         // Customize authentication emails
         VerifyEmail::toMailUsing(function ($notifiable, $url) {
             return (new MailMessage)
-                ->subject('Verify your MyMilestones email address')
-                ->greeting('Welcome to MyMilestones!')
-                ->line('Thanks for joining MyMilestones! Please confirm your email address to activate your account.')
-                ->action('Verify Email', $url)
-                ->line("If you didn't create this account, you can safely ignore this email.")
-                ->salutation("Best regards,  \nThe MyMilestones Team");
+                ->subject(__('Verify your MyMilestones email address'))
+                ->greeting(__('Welcome to MyMilestones!'))
+                ->line(__('Thanks for joining MyMilestones! Please confirm your email address to activate your account.'))
+                ->action(__('Verify Email'), $url)
+                ->line(__('If you didn\'t create this account, you can safely ignore this email.'))
+                ->salutation(__("Best regards,  \nThe MyMilestones Team"));
         });
         ResetPassword::toMailUsing(function ($notifiable, $token) {
             $url = url(route('password.reset', [
@@ -42,12 +45,12 @@ final class AppServiceProvider extends ServiceProvider
             ], false));
 
             return (new MailMessage)
-                ->subject('Reset your MyMilestones password')
-                ->greeting('Reset your password')
-                ->line('We received a request to reset your MyMilestones password.')
-                ->action('Reset Password', $url)
-                ->line('If you did not request a password reset, you can safely ignore this email.')
-                ->salutation("Best regards,  \nThe MyMilestones Team");
+                ->subject(__('Reset your MyMilestones password'))
+                ->greeting(__('Reset your password'))
+                ->line(__('We received a request to reset your MyMilestones password.'))
+                ->action(__('Reset Password'), $url)
+                ->line(__('If you did not request a password reset, you can safely ignore this email.'))
+                ->salutation(__("Best regards,  \nThe MyMilestones Team"));
         });
 
         // Rate limiting for authentication endpoints

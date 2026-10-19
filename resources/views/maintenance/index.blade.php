@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>Maintenance — {{ config('app.name') }}</title>
+    <title>{{ __('Maintenance') }} — {{ config('app.name') }}</title>
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
 
     <style>
@@ -118,11 +118,10 @@
         <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6.6 6.6a2 2 0 0 0 2.8 2.8l6.6-6.6a4 4 0 0 0 5.4-5.4L15 11l-3-3z"/>
     </svg>
 
-    <h1>We'll be right back!</h1>
+    <h1>{{ __('We\'ll be right back!') }}</h1>
 
     <p>
-        MyMilestones is undergoing scheduled maintenance.
-        Please check back in a few minutes.
+        {{ __('MyMilestones is undergoing scheduled maintenance. Please check back in a few minutes.') }}
     </p>
 
     @auth
@@ -130,7 +129,7 @@
             @csrf
 
             <button type="submit" class="logout-button">
-                Log out
+                {{ __('Log out') }}
             </button>
         </form>
     @endauth

@@ -207,12 +207,12 @@ final class AuthenticationTest extends TestCase
 
         $this->get('/forgot-password')->assertOk()
             ->assertSee('A password reset link has been sent.')
-            ->assertSee("Enter your email address and we'll send you a password reset link.", false)
+            ->assertSee("Enter your email address and we'll send you a password reset link.")
             ->assertSee('data-restart="1"', false);
 
         $this->get('/forgot-password')->assertOk()
             ->assertDontSee('A password reset link has been sent.')
-            ->assertSee("Enter your email address and we'll send you a password reset link.", false)
+            ->assertSee("Enter your email address and we'll send you a password reset link.")
             ->assertSee('data-restart="0"', false)
             ->assertSessionMissing('flash')
             ->assertSessionMissing('passwordResetSent');

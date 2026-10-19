@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Account')
-@section('page-title', 'Edit account')
-@section('page-subtitle', 'Update your email or change your password.')
+@section('title', __('Account'))
+@section('page-title', __('Edit account'))
+@section('page-subtitle', __('Update your email or change your password.'))
 
 @section('page-actions')
     <a
@@ -10,7 +10,7 @@
         class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
     >
         <x-heroicon-o-arrow-left class="size-4"/>
-        Back
+        {{ __('Back') }}
     </a>
 @endsection
 
@@ -31,7 +31,7 @@
             <x-form.input
                 name="email"
                 type="email"
-                label="Email"
+                :label="__('Email')"
                 :value="auth()->user()->email"
                 :required="! $isSettingPassword"
                 :disabled="$isSettingPassword"
@@ -42,16 +42,15 @@
 
         <div class="mt-8 border-t border-gray-200 pt-6">
             <h2 class="text-base font-semibold text-gray-900">
-                Password
+                {{ __('Password') }}
             </h2>
 
             <div class="mt-5 space-y-5">
                 @if ($isSettingPassword)
                     <div class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-                        <p class="font-semibold">Set a password to edit your account</p>
+                        <p class="font-semibold">{{ __('Set a password to edit your account') }}</p>
                         <p class="mt-1">
-                            You will also be able to sign in with your email.
-                            Google sign-in will remain available.
+                            {{ __('You will also be able to sign in with your email. Google sign-in will remain available.') }}
                         </p>
                     </div>
                 @else
@@ -59,7 +58,7 @@
                         <x-form.input
                             name="current_password"
                             type="password"
-                            label="Current password"
+                            :label="__('Current password')"
                             autocomplete="current-password"
                             required
                         />
@@ -69,7 +68,7 @@
                 <x-form.input
                     name="password"
                     type="password"
-                    label="New password"
+                    :label="__('New password')"
                     autocomplete="new-password"
                     :required="$isSettingPassword"
                     :autofocus="$isSettingPassword"
@@ -78,7 +77,7 @@
                 <x-form.input
                     name="password_confirmation"
                     type="password"
-                    label="Confirm new password"
+                    :label="__('Confirm new password')"
                     autocomplete="new-password"
                     :required="$isSettingPassword"
                 />
@@ -90,7 +89,7 @@
                 href="{{ route('milestones.index') }}"
                 class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
-                Cancel
+                {{ __('Cancel') }}
             </a>
 
             <button
@@ -98,7 +97,7 @@
                 class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
                 <x-heroicon-o-check class="size-5"/>
-                {{ $isSettingPassword ? 'Set password' : 'Save' }}
+                {{ $isSettingPassword ? __('Set password') : __('Save') }}
             </button>
         </div>
     </form>

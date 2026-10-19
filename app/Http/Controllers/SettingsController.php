@@ -18,6 +18,6 @@ final class SettingsController extends Controller
     {
         $settingsUpdater->update($request->user(), $request->validated());
 
-        return back()->success('Settings updated.');
+        return back()->success(__('Settings updated.', [], $request->user()->locale->value));
     }
 }

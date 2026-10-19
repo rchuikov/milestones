@@ -30,6 +30,7 @@ final class SettingsTest extends TestCase
             ->assertDontSee('name="password"', false);
         $this->from('/settings')->patch('/settings', [
             'name' => 'Updated Name',
+            'locale' => 'en',
             'email' => 'injected@example.com',
             'password' => 'injected-password',
             'password_confirmation' => 'injected-password',

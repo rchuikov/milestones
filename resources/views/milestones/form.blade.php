@@ -9,7 +9,7 @@
 
 @extends('layouts.app')
 
-@section('page-title', $isEdit ? 'Edit milestone' : 'Create milestone')
+@section('page-title', $isEdit ? __('Edit milestone') : __('Create milestone'))
 @section('page-subtitle', $milestone->name ?? '')
 
 @section('page-actions')
@@ -18,7 +18,7 @@
         class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
     >
         <x-heroicon-o-arrow-left class="size-4"/>
-        Back
+        {{ __('Back') }}
     </a>
 @endsection
 
@@ -39,7 +39,7 @@
         <div class="space-y-5">
             <x-form.input
                 name="name"
-                label="Name"
+                :label="__('Name')"
                 :value="$milestone->name"
                 required
             />
@@ -47,7 +47,7 @@
             @unless (! $canEditStartedAt)
                 <x-form.input
                     name="started_at"
-                    label="Started at"
+                    :label="__('Started at')"
                     type="datetime-local"
                     :value="$period?->started_at->format('Y-m-d\TH:i')"
                     required
@@ -56,44 +56,44 @@
 
             <x-form.color-input
                 name="color"
-                label="Color"
+                :label="__('Color')"
                 :value="$milestone->color"
             />
         </div>
 
         <div class="mt-8 border-t border-gray-200 pt-6">
             <h2 class="text-base font-semibold text-gray-900">
-                Anniversaries
+                {{ __('Special dates') }}
             </h2>
 
             <div class="mt-5 grid gap-4 sm:grid-cols-2">
                 <x-form.checkbox
                     name="show_round_days"
-                    label="Round days"
+                    :label="__('Round days')"
                     :checked="old('show_round_days', $milestone->show_round_days ?? true)"
                 />
 
                 <x-form.checkbox
                     name="show_half_decade_days"
-                    label="Half-decade days"
+                    :label="__('Days ending in 5')"
                     :checked="old('show_half_decade_days', $milestone->show_half_decade_days ?? true)"
                 />
 
                 <x-form.checkbox
                     name="show_round_weeks"
-                    label="Round weeks"
+                    :label="__('Full weeks')"
                     :checked="old('show_round_weeks', $milestone->show_round_weeks ?? true)"
                 />
 
                 <x-form.checkbox
                     name="show_round_months"
-                    label="Round months"
+                    :label="__('Full months')"
                     :checked="old('show_round_months', $milestone->show_round_months ?? true)"
                 />
 
                 <x-form.checkbox
                     name="show_years"
-                    label="Years"
+                    :label="__('Anniversaries')"
                     :checked="old('show_years', $milestone->show_years ?? true)"
                 />
             </div>
@@ -104,7 +104,7 @@
                 href="{{ route('milestones.index') }}"
                 class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
-                Cancel
+                {{ __('Cancel') }}
             </a>
 
             <button
@@ -113,10 +113,10 @@
             >
                 @if ($isEdit)
                     <x-heroicon-o-check class="size-5"/>
-                    Save
+                    {{ __('Save') }}
                 @else
                     <x-heroicon-o-plus class="size-5"/>
-                    Create
+                    {{ __('Create') }}
                 @endif
             </button>
         </div>

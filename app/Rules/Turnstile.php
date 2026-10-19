@@ -16,7 +16,7 @@ final class Turnstile implements ValidationRule
         Closure $fail,
     ): void {
         if (! is_string($value) || $value === '') {
-            $fail('Please complete the security verification.');
+            $fail(__('Please complete the security verification.'));
 
             return;
         }
@@ -26,7 +26,7 @@ final class Turnstile implements ValidationRule
         if (! is_string($secret) || $secret === '') {
             Log::error('Turnstile secret key is not configured.');
 
-            $fail('Security verification is temporarily unavailable. Please try again.');
+            $fail(__('Security verification is temporarily unavailable. Please try again.'));
 
             return;
         }
@@ -44,7 +44,7 @@ final class Turnstile implements ValidationRule
                 'exception_type' => $exception::class,
             ]);
 
-            $fail('Security verification is temporarily unavailable. Please try again.');
+            $fail(__('Security verification is temporarily unavailable. Please try again.'));
 
             return;
         }
@@ -54,7 +54,7 @@ final class Turnstile implements ValidationRule
                 'status' => $response->status(),
             ]);
 
-            $fail('Security verification is temporarily unavailable. Please try again.');
+            $fail(__('Security verification is temporarily unavailable. Please try again.'));
 
             return;
         }
@@ -70,12 +70,12 @@ final class Turnstile implements ValidationRule
                     'error_codes' => $technicalErrors,
                 ]);
 
-                $fail('Security verification is temporarily unavailable. Please try again.');
+                $fail(__('Security verification is temporarily unavailable. Please try again.'));
 
                 return;
             }
 
-            $fail('Security verification failed. Please try again.');
+            $fail(__('Security verification failed. Please try again.'));
         }
     }
 }

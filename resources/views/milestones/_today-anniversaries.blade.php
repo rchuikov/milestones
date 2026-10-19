@@ -49,7 +49,7 @@
 
 @if ($items)
     <div class="mb-1 px-2 text-lg font-medium text-gray-600">
-        Today's anniversaries
+        {{ __('Today\'s special dates') }}
     </div>
 
     <div class="mb-6 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
@@ -75,27 +75,27 @@
                         @php
                             [$label, $classes] = match ($anniversary['type']) {
                                 AnniversaryCalculator::TYPE_ROUND_DAYS => [
-                                    $anniversary['value'].' days',
+                                    trans_choice(':count days', $anniversary['value']),
                                     'bg-amber-50 text-amber-800 ring-amber-200',
                                 ],
 
                                 AnniversaryCalculator::TYPE_HALF_DECADE_DAYS => [
-                                    $anniversary['value'].' days',
+                                    trans_choice(':count days', $anniversary['value']),
                                     'bg-rose-50 text-rose-800 ring-rose-200',
                                 ],
 
                                 AnniversaryCalculator::TYPE_WEEKS => [
-                                    $anniversary['value'].' weeks',
+                                    trans_choice(':count weeks', $anniversary['value']),
                                     'bg-blue-50 text-blue-800 ring-blue-200',
                                 ],
 
                                 AnniversaryCalculator::TYPE_MONTHS => [
-                                    $anniversary['value'].' months',
+                                    trans_choice(':count months', $anniversary['value']),
                                     'bg-emerald-50 text-emerald-800 ring-emerald-200',
                                 ],
 
                                 AnniversaryCalculator::TYPE_YEARS => [
-                                    $anniversary['value'].' years',
+                                    trans_choice(':count years', $anniversary['value']),
                                     'bg-violet-50 text-violet-800 ring-violet-200',
                                 ],
                             };

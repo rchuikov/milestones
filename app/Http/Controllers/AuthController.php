@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\User\LoginUser;
 use App\Actions\User\RegisterUser;
 use App\Actions\User\ResetUserPassword;
+use App\Enums\Locale;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
@@ -16,6 +17,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Laravel\Socialite\Facades\Socialite;
@@ -36,7 +38,12 @@ final class AuthController extends Controller
         $ip = $request->ip();
         $request->session()->put('loginEmail', $email);
 
-        if ($loginUser->handle($request->safe()->only(['email', 'password']), $request->boolean('remember'), $ip)) {
+        if ($loginUser->handle(
+            $request->safe()->only(['email', 'password']),
+            $request->boolean('remember'),
+            $ip,
+            Locale::tryFrom($request->session()->get('locale')),
+        )) {
             $request->session()->forget('loginEmail');
             $request->session()->regenerate();
 
@@ -45,22 +52,26 @@ final class AuthController extends Controller
 
         if ($cooldown = $loginUser->remainingSeconds($email, $ip)) {
             return back()
-                ->danger('Too many login attempts. Try again later.')
+                ->danger(__('Too many login attempts. Try again later.'))
                 ->with('loginCooldown', $cooldown)
                 ->onlyInput('email', 'remember');
         }
 
         return back()
-            ->withErrors(['email' => "Invalid email or password. Attempts left: {$loginUser->attemptsLeft($email, $ip)}"])
+            ->withErrors(['email' => __('Invalid email or password. Attempts left: :attempts', ['attempts' => $loginUser->attemptsLeft($email, $ip)])])
             ->onlyInput('email', 'remember');
     }
 
     public function logout(Request $request): RedirectResponse
     {
+        $locale = $request->user()->locale->value;
+
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        $request->session()->put('locale', $locale);
 
         return redirect('/');
     }
@@ -72,7 +83,10 @@ final class AuthController extends Controller
 
     public function register(RegisterRequest $request, RegisterUser $registerUser): RedirectResponse
     {
-        $user = $registerUser->handle($request->validated());
+        $user = $registerUser->handle([
+            ...$request->validated(),
+            'locale' => $request->session()->get('locale', Locale::default()->value),
+        ]);
 
         Auth::login($user);
 
@@ -96,18 +110,19 @@ final class AuthController extends Controller
 
         if (! $sender->send($request->user())) {
             return back()->withErrors([
-                'verification' => 'Please wait before requesting another verification email.',
+                'verification' => __('Please wait before requesting another verification email.'),
             ]);
         }
 
-        return back()->success('A new verification link has been sent.');
+        return back()->success(__('A new verification link has been sent.'));
     }
 
     public function verifyEmail(EmailVerificationRequest $request): RedirectResponse
     {
         $request->fulfill();
 
-        return redirect('/');
+        return redirect('/')
+            ->success(__('Email verified successfully. Welcome to MyMilestones!'));
     }
 
     public function showForgotPassword(): View
@@ -123,7 +138,7 @@ final class AuthController extends Controller
 
         return $status === Password::ResetLinkSent
             ? back()
-                ->success('A password reset link has been sent.')
+                ->success(__('A password reset link has been sent.'))
                 ->with('passwordResetSent', true)
                 ->withInput($request->only('email'))
             : back()
@@ -164,13 +179,15 @@ final class AuthController extends Controller
                 ->route('login')
                 ->withErrors([
                     'email' => $request->query('error') === 'access_denied'
-                        ? 'Google sign-in was cancelled.'
-                        : 'Google sign-in could not be completed. Please try again.',
+                        ? __('Google sign-in was cancelled.')
+                        : __('Google sign-in could not be completed. Please try again.'),
                 ]);
         }
 
         try {
-            $user = $authenticator->authenticate();
+            $user = $authenticator->authenticate(
+                Locale::tryFrom($request->session()->get('locale'))
+            );
         } catch (ValidationException $exception) {
             return redirect()->route('login')->withErrors($exception->errors());
         }
@@ -180,5 +197,23 @@ final class AuthController extends Controller
         $request->session()->regenerate();
 
         return redirect()->intended('/');
+    }
+
+    public function updateLocale(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'locale' => ['required', Rule::enum(Locale::class)],
+        ]);
+
+        $locale = Locale::from($data['locale']);
+
+        if ($user = $request->user()) {
+            $user->locale = $locale;
+            $user->save();
+        } else {
+            $request->session()->put('locale', $locale->value);
+        }
+
+        return back();
     }
 }

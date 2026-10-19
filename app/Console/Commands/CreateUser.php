@@ -18,18 +18,18 @@ final class CreateUser extends Command
     public function handle(): int
     {
         $data = [
-            'name' => $this->ask('Name'),
-            'email' => $this->ask('Email'),
+            'name' => $this->ask(__('Name')),
+            'email' => $this->ask(__('Email')),
             'role' => $this->choice(
-                'Role',
+                __('Role'),
                 [
                     UserRole::User->value,
                     UserRole::Admin->value,
                 ],
                 UserRole::User->value,
             ),
-            'password' => $this->secret('Password'),
-            'password_confirmation' => $this->secret('Confirm password'),
+            'password' => $this->secret(__('Password')),
+            'password_confirmation' => $this->secret(__('Confirm password')),
 
         ];
 
@@ -61,7 +61,7 @@ final class CreateUser extends Command
         $user->email_verified_at = now();
         $user->save();
 
-        $this->info("User $user->email created.");
+        $this->info(__('User :email created.', ['email' => $user->email]));
 
         return self::SUCCESS;
     }

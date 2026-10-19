@@ -7,13 +7,24 @@ import { Temporal } from '@js-temporal/polyfill';
 const source = await readFile(new URL('../../resources/js/timer.js', import.meta.url), 'utf8');
 
 // Run the actual browser module with controlled time and a minimal DOM.
-async function loadTimer({ now = '2026-10-15T12:00:00Z', timeZone = 'UTC', timers = [] } = {}) {
+async function loadTimer({ now = '2026-10-15T12:00:00Z', timeZone = 'UTC', timers = [], locale = 'en' } = {}) {
     let currentInstant = Temporal.Instant.from(now);
     let interval;
     let reloads = 0;
+    const unitLabels = locale === 'sr-Latn'
+        ? { day: ['dan', 'dana', 'dana'], month: ['mesec', 'meseca', 'meseci'], year: ['godina', 'godine', 'godina'] }
+        : locale === 'ru'
+        ? { day: ['день', 'дня', 'дней'], month: ['месяц', 'месяца', 'месяцев'], year: ['год', 'года', 'лет'] }
+        : { day: ['day', 'days', 'days'], month: ['month', 'months', 'months'], year: ['year', 'years', 'years'] };
+    const milestoneTranslations = Object.fromEntries(Object.entries(unitLabels).map(([unit, forms]) => [unit, {
+        one: `:count ${forms[0]}`,
+        few: `:count ${forms[1]}`,
+        many: `:count ${forms[2]}`,
+        other: `:count ${forms[2]}`,
+    }]));
     const context = vm.createContext({
-        document: { querySelectorAll: () => timers },
-        window: { location: { reload: () => { reloads++; } } },
+        document: { documentElement: { lang: locale }, querySelectorAll: () => timers },
+        window: { milestoneTranslations, location: { reload: () => { reloads++; } } },
         setInterval: (callback, delay) => {
             assert.equal(delay, 1000);
             interval = callback;
@@ -103,3 +114,30 @@ test('page reloads only when the browser calendar date changes', async () => {
     timer.tick('2026-10-15T22:00:00Z');
     assert.equal(timer.reloads, 1);
 });
+
+for (const [count, expected] of [[1, '1 день'], [2, '2 дня'], [5, '5 дней'], [11, '11 дней'], [21, '21 день'], [22, '22 дня'], [25, '25 дней']]) {
+    test(`Russian day forms: ${count}`, async () => {
+        const timer = await loadTimer({ locale: 'ru' });
+        const start = Temporal.Instant.from('2026-10-15T12:00:00Z').subtract({ hours: count * 24 }).toString();
+        assert.equal(timer.duration(start).duration, expected);
+    });
+}
+
+for (const [startedAt, expected] of [
+    ['2025-09-14T12:00:00Z', '1 год 1 месяц 1 день'],
+    ['2024-08-13T12:00:00Z', '2 года 2 месяца 2 дня'],
+    ['2021-05-10T12:00:00Z', '5 лет 5 месяцев 5 дней'],
+]) {
+    test(`Russian calendar units: ${expected}`, async () => {
+        const timer = await loadTimer({ locale: 'ru' });
+        assert.equal(timer.duration(startedAt).duration, expected);
+    });
+}
+
+for (const [count, expected] of [[1, '1 dan'], [2, '2 dana'], [5, '5 dana'], [11, '11 dana'], [21, '21 dan'], [22, '22 dana'], [25, '25 dana']]) {
+    test(`Serbian Latin day forms: ${count}`, async () => {
+        const timer = await loadTimer({ locale: 'sr-Latn' });
+        const start = Temporal.Instant.from('2026-10-15T12:00:00Z').subtract({ hours: count * 24 }).toString();
+        assert.equal(timer.duration(start).duration, expected);
+    });
+}

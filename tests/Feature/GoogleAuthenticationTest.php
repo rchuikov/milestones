@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Locale;
 use App\Enums\UserRole;
 use App\Models\User;
 use GuzzleHttp\Client;
@@ -178,6 +179,73 @@ final class GoogleAuthenticationTest extends TestCase
         $this->get('/auth/google/callback')->assertRedirect(route('login'))->assertSessionHasErrors('email');
         $this->assertGuest();
         $this->assertSame('original-google', $user->fresh()->external_id);
+    }
+
+    public static function googleLoginLocales(): array
+    {
+        return [
+            'no choice preserves Russian' => [null, 'ru', 'ru'],
+            'explicit English' => ['en', 'ru', 'en'],
+            'explicit Russian' => ['ru', 'en', 'ru'],
+            'explicit Serbian' => ['sr_Latn', 'en', 'sr_Latn'],
+        ];
+    }
+
+    #[DataProvider('googleLoginLocales')]
+    public function test_existing_google_login_applies_only_an_explicit_guest_locale(?string $selectedLocale, string $storedLocale, string $expectedLocale): void
+    {
+        $user = User::factory()->create(['external_id' => 'google-123', 'locale' => $storedLocale]);
+        $this->googleUser();
+        if ($selectedLocale !== null) {
+            $this->from('/login')->post('/locale', ['locale' => $selectedLocale])->assertRedirect('/login');
+        }
+
+        $this->withSession(['url.intended' => url('/settings')])->get('/auth/google/callback')
+            ->assertRedirect('/settings')->assertSessionHasNoErrors();
+        $this->assertAuthenticatedAs($user);
+        $this->assertSame(Locale::from($expectedLocale), $user->fresh()->locale);
+        $this->get('/settings')->assertOk()
+            ->assertSee('lang="'.str_replace('_', '-', $expectedLocale).'"', false);
+    }
+
+    public function test_google_linking_also_applies_the_selected_guest_locale(): void
+    {
+        $user = User::factory()->create(['email' => 'person@gmail.com', 'locale' => Locale::English]);
+        $this->googleUser();
+        $this->withSession(['locale' => 'sr_Latn'])->get('/auth/google/callback')
+            ->assertRedirect('/')->assertSessionHasNoErrors();
+        $this->assertAuthenticatedAs($user);
+        $this->assertSame(Locale::Serbian, $user->fresh()->locale);
+        $this->assertSame('google-123', $user->fresh()->external_id);
+    }
+
+    public static function newGoogleLocales(): array
+    {
+        return [[null, 'en'], ['ru', 'ru'], ['sr_Latn', 'sr_Latn']];
+    }
+
+    #[DataProvider('newGoogleLocales')]
+    public function test_new_google_account_uses_selected_locale_or_default(?string $selectedLocale, string $expectedLocale): void
+    {
+        Notification::fake();
+        $this->googleUser();
+        if ($selectedLocale !== null) {
+            $this->withSession(['locale' => $selectedLocale]);
+        }
+        $this->get('/auth/google/callback')->assertRedirect('/')->assertSessionHasNoErrors();
+        $this->assertSame(Locale::from($expectedLocale), User::sole()->locale);
+    }
+
+    public function test_rejected_google_login_does_not_change_account_locale(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'person@gmail.com', 'external_id' => 'original-google', 'locale' => Locale::English,
+        ]);
+        $this->googleUser();
+        $this->withSession(['locale' => 'sr_Latn'])->get('/auth/google/callback')
+            ->assertRedirect(route('login'))->assertSessionHasErrors('email');
+        $this->assertGuest();
+        $this->assertSame(Locale::English, $user->fresh()->locale);
     }
 
     public static function oauthErrors(): array

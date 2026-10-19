@@ -38,7 +38,7 @@ final class MilestoneController extends Controller
 
         return redirect()
             ->route('milestones.index')
-            ->success('Milestone created.');
+            ->success(__('Milestone created.'));
     }
 
     public function edit(Request $request, Milestone $milestone): View
@@ -60,7 +60,7 @@ final class MilestoneController extends Controller
 
         return redirect()
             ->route('milestones.index')
-            ->success('Milestone updated.');
+            ->success(__('Milestone updated.'));
     }
 
     public function destroy(
@@ -73,7 +73,7 @@ final class MilestoneController extends Controller
 
         return redirect()
             ->route('milestones.index')
-            ->success('Milestone deleted.');
+            ->success(__('Milestone deleted.'));
     }
 
     public function history(Request $request, Milestone $milestone)

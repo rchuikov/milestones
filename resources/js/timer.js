@@ -1,5 +1,12 @@
 import { Temporal } from '@js-temporal/polyfill';
 
+function formatUnit(unit, count) {
+    const form = new Intl.PluralRules(document.documentElement.lang).select(count);
+    const translations = window.milestoneTranslations[unit];
+
+    return (translations[form] ?? translations.other).replace(':count', String(count));
+}
+
 function getMilestoneDuration(startedAt) {
     const timeZone = Temporal.Now.timeZoneId();
 
@@ -31,22 +38,10 @@ function getMilestoneDuration(startedAt) {
 
     const parts = [];
 
-    if (duration.years) {
-        parts.push(
-            `${duration.years} ${duration.years === 1 ? 'year' : 'years'}`
-        );
-    }
-
-    if (duration.months) {
-        parts.push(
-            `${duration.months} ${duration.months === 1 ? 'month' : 'months'}`
-        );
-    }
-
-    if (duration.days) {
-        parts.push(
-            `${duration.days} ${duration.days === 1 ? 'day' : 'days'}`
-        );
+    for (const [unit, count] of [['year', duration.years], ['month', duration.months], ['day', duration.days]]) {
+        if (count) {
+            parts.push(formatUnit(unit, count));
+        }
     }
 
     const time = [
@@ -80,7 +75,7 @@ function updateMilestoneTimers() {
 
         if (totalDays) {
             totalDays.textContent =
-                `(${result.totalDays} ${result.totalDays === 1 ? 'day' : 'days'})`;
+                `(${formatUnit('day', result.totalDays)})`;
         }
     });
 }

@@ -30,7 +30,17 @@
 
         <x-flash-message/>
 
-        @yield('content')
+        <div class="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+            <div class="mb-6 flex items-start justify-between gap-4">
+                <h1 class="min-w-0 wrap-break-word text-2xl font-semibold">
+                    @yield('heading')
+                </h1>
+
+                <x-locale-switcher/>
+            </div>
+
+            @yield('content')
+        </div>
     </div>
 </main>
 

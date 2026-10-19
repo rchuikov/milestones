@@ -2,6 +2,7 @@
 
 namespace App\Actions\User;
 
+use App\Enums\Locale;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -10,8 +11,12 @@ final class LoginUser
 {
     private const int LOGIN_ATTEMPTS = 5;
 
-    public function handle(array $credentials, bool $remember, string $ip): bool
-    {
+    public function handle(
+        array $credentials,
+        bool $remember,
+        string $ip,
+        ?Locale $locale = null,
+    ): bool {
         $key = $this->throttleKey($credentials['email'], $ip);
 
         if (RateLimiter::tooManyAttempts($key, self::LOGIN_ATTEMPTS)) {
@@ -20,6 +25,10 @@ final class LoginUser
 
         if (Auth::attempt($credentials, $remember)) {
             RateLimiter::clear($key);
+
+            if ($locale !== null) {
+                Auth::user()->update(['locale' => $locale]);
+            }
 
             return true;
         }

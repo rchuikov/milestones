@@ -158,6 +158,7 @@ final class MaintenanceModeTest extends TestCase
 
         $this->actingAs($admin)->patch('/settings', [
             'name' => 'Updated Admin',
+            'locale' => 'en',
         ])->assertRedirect();
 
         $this->assertSame('Updated Admin', $admin->fresh()->name);

@@ -49,7 +49,7 @@
             name="{{ $name }}"
             type="text"
             value="{{ $colorValue }}"
-            placeholder="No color"
+            placeholder="{{ __('No color') }}"
             maxlength="7"
             class="min-w-0 flex-1 border-0 px-3 text-sm text-gray-900 focus:ring-0"
         >
@@ -58,7 +58,7 @@
             id="{{ $inputId }}_clear"
             type="button"
             class="flex w-11 shrink-0 items-center justify-center border-l border-gray-300 text-gray-400 hover:text-gray-700"
-            title="Clear color"
+            title="{{ __('Clear color') }}"
         >
             <x-heroicon-o-x-mark class="size-5"/>
         </button>

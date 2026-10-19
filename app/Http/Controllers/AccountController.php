@@ -28,7 +28,7 @@ final class AccountController extends Controller
         return $emailChanged
             ? redirect()->route('verification.notice')
             : back()->success($isSettingPassword
-                ? 'Password set. You can now edit your account and sign in with your email.'
-                : 'Account updated.');
+                ? __('Password set. You can now edit your account and sign in with your email.')
+                : __('Account updated.'));
     }
 }

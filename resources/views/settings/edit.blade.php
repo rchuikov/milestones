@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Settings')
-@section('page-title', 'Settings')
-@section('page-subtitle', 'Manage your personal settings.')
+@section('title', __('Settings'))
+@section('page-title', __('Settings'))
+@section('page-subtitle', __('Manage your personal settings.'))
 
 @section('page-actions')
     <a
@@ -10,7 +10,7 @@
         class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
     >
         <x-heroicon-o-arrow-left class="size-4"/>
-        Back
+        {{ __('Back') }}
     </a>
 @endsection
 
@@ -22,22 +22,31 @@
     >
         @csrf
         @method('PATCH')
+        <div class="space-y-5">
+            <x-form.input
+                name="name"
+                :label="__('Name')"
+                :value="auth()->user()->name"
+                required
+                autofocus
+                autocomplete="name"
+            />
 
-        <x-form.input
-            name="name"
-            label="Name"
-            :value="auth()->user()->name"
-            required
-            autofocus
-            autocomplete="name"
-        />
+            <x-form.select
+                name="locale"
+                :label="__('Language')"
+                :options="\App\Enums\Locale::options()"
+                :value="auth()->user()->locale->value"
+                required
+            />
+        </div>
 
         <div class="mt-8 flex justify-end gap-3 border-t border-gray-200 pt-6">
             <a
                 href="{{ route('milestones.index') }}"
                 class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
-                Cancel
+                {{ __('Cancel') }}
             </a>
 
             <button
@@ -45,7 +54,7 @@
                 class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
                 <x-heroicon-o-check class="size-5"/>
-                Save
+                {{ __('Save') }}
             </button>
         </div>
     </form>

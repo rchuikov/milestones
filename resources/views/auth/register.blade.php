@@ -1,66 +1,61 @@
 @extends('layouts.empty')
 
-@section('title', 'Register')
+@section('title', __('Register'))
+@section('heading', __('Register'))
 
 @section('content')
-    <div class="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 class="mb-6 text-2xl font-semibold">
-            Register
-        </h1>
+    <form
+        method="POST"
+        action="{{ route('register.submit') }}"
+        data-externally-blocked="1"
+    >
+        @csrf
 
-        <form
-            method="POST"
-            action="{{ route('register.submit') }}"
-            data-externally-blocked="1"
+        <x-form.input
+            name="name"
+            :label="__('Name')"
+            required
+            autofocus
+        />
+
+        <x-form.input
+            name="email"
+            type="email"
+            :label="__('Email')"
+            required
+        />
+
+        <x-form.input
+            name="password"
+            type="password"
+            :label="__('Password')"
+            required
+        />
+
+        <x-form.input
+            name="password_confirmation"
+            type="password"
+            :label="__('Confirm password')"
+            required
+        />
+
+        <x-turnstile/>
+
+        <button
+            type="submit"
+            disabled
+            class="mt-2 w-full cursor-pointer rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-            @csrf
+            {{ __('Register') }}
+        </button>
 
-            <x-form.input
-                name="name"
-                label="Name"
-                required
-                autofocus
-            />
-
-            <x-form.input
-                name="email"
-                type="email"
-                label="Email"
-                required
-            />
-
-            <x-form.input
-                name="password"
-                type="password"
-                label="Password"
-                required
-            />
-
-            <x-form.input
-                name="password_confirmation"
-                type="password"
-                label="Confirm password"
-                required
-            />
-
-            <x-turnstile />
-
-            <button
-                type="submit"
-                disabled
-                class="mt-2 w-full cursor-pointer rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+        <div class="mt-6 text-center text-sm">
+            <a
+                href="{{ route('login') }}"
+                class="text-blue-600 hover:underline"
             >
-                Register
-            </button>
-
-            <div class="mt-6 text-center text-sm">
-                <a
-                    href="{{ route('login') }}"
-                    class="text-blue-600 hover:underline"
-                >
-                    Already have an account?
-                </a>
-            </div>
-        </form>
-    </div>
+                {{ __('Already have an account?') }}
+            </a>
+        </div>
+    </form>
 @endsection

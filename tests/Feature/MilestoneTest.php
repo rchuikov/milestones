@@ -293,9 +293,9 @@ final class MilestoneTest extends TestCase
         $this->travelTo(now()->setDate(2026, 1, 11)->setTime(12, 0));
         $user = User::factory()->create();
         $milestone = $this->milestone($user);
-        $this->actingAs($user)->get('/')->assertOk()->assertSee('10 days')->assertSee("Today's anniversaries", false);
+        $this->actingAs($user)->get('/')->assertOk()->assertSee('10 days')->assertSee("Today's special dates");
         $milestone->update(['show_round_days' => false]);
-        $this->get('/')->assertOk()->assertDontSee("Today's anniversaries", false);
+        $this->get('/')->assertOk()->assertDontSee("Today's special dates");
         $milestone->periods()->update(['finished_at' => now()]);
         $this->get('/')->assertOk()->assertSee('Stopped')->assertDontSee('data-started-at=', false);
     }

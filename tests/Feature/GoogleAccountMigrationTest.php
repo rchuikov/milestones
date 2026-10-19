@@ -19,7 +19,8 @@ final class GoogleAccountMigrationTest extends TestCase
         $milestone = $google->milestones()->create(['name' => 'Keep this history']);
         $period = $milestone->periods()->create(['started_at' => now()->subDay()]);
 
-        $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+        $migration = require database_path('migrations/2026_10_14_180638_add_google_id_to_users_table.php');
+        $migration->down();
 
         $this->assertFalse(Schema::hasColumn('users', 'external_id'));
         $this->assertDatabaseCount('users', 2);
@@ -29,7 +30,7 @@ final class GoogleAccountMigrationTest extends TestCase
         $this->assertDatabaseHas('milestones', ['id' => $milestone->id, 'user_id' => $google->id]);
         $this->assertDatabaseHas('milestone_periods', ['id' => $period->id, 'milestone_id' => $milestone->id]);
 
-        $this->artisan('migrate')->assertSuccessful();
+        $migration->up();
         $this->assertTrue(Schema::hasColumn('users', 'external_id'));
         $this->assertDatabaseCount('users', 2);
         $this->assertDatabaseHas('milestone_periods', ['id' => $period->id]);

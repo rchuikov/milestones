@@ -20,7 +20,7 @@
 
 @extends('layouts.app')
 
-@section('page-title', 'History')
+@section('page-title', __('History'))
 @section('page-subtitle', $milestone->name)
 
 @section('page-actions')
@@ -29,7 +29,7 @@
         class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
     >
         <x-heroicon-o-arrow-left class="size-4"/>
-        Back
+        {{ __('Back') }}
     </a>
 @endsection
 
@@ -37,7 +37,7 @@
     <div class="mb-6 grid gap-4 sm:grid-cols-2">
         <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
             <div class="text-sm font-medium text-gray-500">
-                Total
+                {{ __('Total') }}
             </div>
 
             <div class="mt-1 text-xl font-semibold text-gray-900">
@@ -47,14 +47,14 @@
 
         <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
             <div class="text-sm font-medium text-gray-500">
-                Current period
+                {{ __('Current period') }}
             </div>
 
             <div class="mt-1 text-xl font-semibold text-gray-900">
                 @if ($currentPeriod)
                     <x-duration :seconds="$currentPeriod->started_at->diffInSeconds($now, true)"/>
                 @else
-                    Stopped
+                    {{ __('Stopped') }}
                 @endif
             </div>
         </div>
@@ -74,10 +74,10 @@
 
                     <div class="mt-1 text-base text-gray-600">
                         @if ($period->finished_at)
-                            Finished {{ $period->finished_at->format('d.m.Y H:i') }}
+                            {{ __('Finished :date', ['date' => $period->finished_at->format('d.m.Y H:i')]) }}
                         @else
                             <span class="font-medium text-green-700">
-                                    Active
+                                    {{ __('Active') }}
                                 </span>
                         @endif
                     </div>
@@ -91,7 +91,7 @@
             </div>
         @empty
             <div class="p-10 text-center text-sm text-gray-500">
-                No history yet.
+                {{ __('No history yet.') }}
             </div>
         @endforelse
     </div>
