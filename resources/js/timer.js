@@ -1,98 +1,72 @@
 import { Temporal } from '@js-temporal/polyfill';
 
-function formatUnit(unit, count) {
-    const form = new Intl.PluralRules(document.documentElement.lang).select(count);
-    const translations = window.milestoneTranslations[unit];
+import {
+    createTimer,
+    render,
+    formatUnit,
+} from '@rchuikov/chrono';
 
-    return (translations[form] ?? translations.other).replace(':count', String(count));
-}
+const language = document.documentElement.lang;
+const locale = ['en', 'ru', 'sr-Latn'].includes(language)
+    ? language
+    : language.startsWith('sr') ? 'sr-Latn' : 'en';
 
-function getMilestoneDuration(startedAt) {
-    const timeZone = Temporal.Now.timeZoneId();
+const timeZone = Temporal.Now.timeZoneId();
 
-    const start = Temporal.Instant
-        .from(startedAt)
-        .toZonedDateTimeISO(timeZone);
+function getCalendarDays(startedAt) {
+    const start = Temporal.Instant.from(startedAt)
+        .toZonedDateTimeISO(timeZone)
+        .toPlainDate();
 
-    const now = Temporal.Now.zonedDateTimeISO(timeZone);
+    const today = Temporal.Now.plainDateISO(timeZone);
 
-    if (Temporal.ZonedDateTime.compare(start, now) > 0) {
-        return {
-            duration: '',
-            time: '00:00:00',
-            totalDays: 0,
-        };
-    }
-
-    const duration = now.since(start, {
-        largestUnit: 'years',
-        smallestUnit: 'seconds',
-        roundingMode: 'trunc',
-    });
-
-    const totalDays = now.since(start, {
+    return Math.max(0, start.until(today, {
         largestUnit: 'days',
-        smallestUnit: 'days',
-        roundingMode: 'trunc',
-    }).days;
-
-    const parts = [];
-
-    for (const [unit, count] of [['year', duration.years], ['month', duration.months], ['day', duration.days]]) {
-        if (count) {
-            parts.push(formatUnit(unit, count));
-        }
-    }
-
-    const time = [
-        duration.hours.toString().padStart(2, '0'),
-        duration.minutes.toString().padStart(2, '0'),
-        duration.seconds.toString().padStart(2, '0'),
-    ].join(':');
-
-    return {
-        duration: parts.join(' '),
-        time,
-        totalDays,
-    };
+    }).days);
 }
 
-function updateMilestoneTimers() {
-    document.querySelectorAll('.milestone-timer').forEach(timer => {
-        const result = getMilestoneDuration(timer.dataset.startedAt);
-        const container = timer.parentElement;
+document.querySelectorAll('.milestone-timer').forEach(element => {
+    const container = element.parentElement;
+    const durationElement = container.querySelector('.milestone-duration');
+    const totalDaysElement = container.querySelector('.milestone-total-days');
 
-        timer.textContent = result.time;
+    createTimer({
+        startedAt: element.dataset.startedAt,
+        timeZone,
+        onTick: duration => {
+            render(duration, '{time}', {
+                locale,
+                element,
+            });
 
-        const duration = container.querySelector('.milestone-duration');
+            if (durationElement) {
+                render(duration, '{duration}', {
+                    locale,
+                    element: durationElement,
+                });
 
-        if (duration) {
-            duration.textContent = result.duration;
-            duration.classList.toggle('hidden', ! result.duration);
-        }
+                durationElement.classList.toggle(
+                    'hidden',
+                    !durationElement.textContent.trim(),
+                );
+            }
 
-        const totalDays = container.querySelector('.milestone-total-days');
+            if (totalDaysElement) {
+                const days = getCalendarDays(element.dataset.startedAt);
 
-        if (totalDays) {
-            totalDays.textContent =
-                `(${formatUnit('day', result.totalDays)})`;
-        }
-    });
-}
+                totalDaysElement.textContent =
+                    `(${formatUnit('day', days, locale)})`;
+            }
+        },
+    }).start();
+});
 
-let currentDate = Temporal.Now.plainDateISO().toString();
+let currentDate = Temporal.Now.plainDateISO(timeZone).toString();
 
-function reloadOnDateChange() {
-    const today = Temporal.Now.plainDateISO().toString();
+setInterval(() => {
+    const today = Temporal.Now.plainDateISO(timeZone).toString();
 
     if (today !== currentDate) {
         window.location.reload();
     }
-}
-
-updateMilestoneTimers();
-
-setInterval(() => {
-    updateMilestoneTimers();
-    reloadOnDateChange();
 }, 1000);

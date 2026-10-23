@@ -90,9 +90,11 @@ final class LocalizationTest extends TestCase
         $user = User::factory()->create(['locale' => Locale::Russian]);
         $milestone = $user->milestones()->create(['name' => 'Тест']);
         $milestone->periods()->create(['started_at' => now()->subDays(21)]);
-        $this->actingAs($user)->get('/')->assertOk()->assertSee('История')
-            ->assertSee('3 недели')->assertSee('Удалить эту веху?')
-            ->assertSee('window.milestoneTranslations', false);
+        $this->actingAs($user)->get('/')->assertOk()
+            ->assertSee('История')
+            ->assertSee('3 недели')
+            ->assertSee('Удалить эту веху?')
+            ->assertSee('milestone-timer', false);
         $this->get('/milestones/'.$milestone->id.'/history')->assertOk()
             ->assertSee('Текущий период')->assertSee('21 день')->assertDontSee('21 days');
         $this->delete('/milestones/'.$milestone->id)->assertRedirect('/')

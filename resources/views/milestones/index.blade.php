@@ -176,16 +176,5 @@
 @endsection
 
 @push('scripts')
-    @php
-        $durationTranslations = [];
-        foreach (['day' => ':count day|:count days', 'month' => ':count month|:count months', 'year' => ':count year|:count years'] as $unit => $key) {
-            foreach (['one' => 1, 'few' => 2, 'many' => 5, 'other' => 0] as $form => $count) {
-                $durationTranslations[$unit][$form] = trans_choice($key, $count, ['count' => ':count']);
-            }
-        }
-    @endphp
-    <script>
-        window.milestoneTranslations = @js($durationTranslations);
-    </script>
     @vite('resources/js/timer.js')
 @endpush
