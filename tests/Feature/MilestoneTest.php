@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Milestone;
+use App\Models\MilestonePeriod;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
+use PDOException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -27,22 +31,33 @@ final class MilestoneTest extends TestCase
 
     public static function protectedRoutes(): array
     {
-        return [['GET', '/'], ['GET', '/account'], ['PATCH', '/account'], ['GET', '/settings'], ['PATCH', '/settings'], ['GET', '/milestones/create'], ['POST', '/milestones'], ['GET', '/milestones/1/edit'], ['PUT', '/milestones/1'], ['DELETE', '/milestones/1'], ['GET', '/milestones/1/history'], ['POST', '/milestones/1/start'], ['POST', '/milestones/1/stop'], ['POST', '/milestones/1/reset']];
+        return [['GET', '/'], ['GET', '/account'], ['PATCH', '/account'], ['GET', '/settings'], ['PATCH', '/settings'], ['GET', '/milestones/create'], ['POST', '/milestones'], ['GET', '/milestones/1/edit'], ['PUT', '/milestones/1'], ['DELETE', '/milestones/1'], ['GET', '/milestones/1/history'], ['POST', '/milestones/1/start'], ['POST', '/milestones/1/stop'], ['POST', '/milestones/1/reset'], ['GET', '/milestones/anniversaries'], ['POST', '/milestones/1/start', true], ['POST', '/milestones/1/stop', true], ['POST', '/milestones/1/reset', true], ['GET', '/milestones/anniversaries', true]];
     }
 
     #[DataProvider('protectedRoutes')]
-    public function test_guests_cannot_access_private_routes(string $method, string $path): void
+    public function test_guests_cannot_access_private_routes(string $method, string $path, bool $ajax = false): void
     {
-        $this->call($method, $path)->assertRedirect(route('login'));
+        if ($ajax) {
+            $this->withHeaders(['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'])
+                ->json($method, $path)->assertUnauthorized();
+        } else {
+            $this->call($method, $path)->assertRedirect(route('login'));
+        }
     }
 
     #[DataProvider('protectedRoutes')]
-    public function test_unverified_users_cannot_access_private_routes(string $method, string $path): void
+    public function test_unverified_users_cannot_access_private_routes(string $method, string $path, bool $ajax = false): void
     {
         $user = User::factory()->unverified()->create();
         $milestone = $this->milestone($user);
         $path = str_replace('/milestones/1', '/milestones/'.$milestone->id, $path);
-        $this->actingAs($user)->call($method, $path)->assertRedirect(route('verification.notice'));
+        $this->actingAs($user);
+        if ($ajax) {
+            $this->withHeaders(['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'])
+                ->json($method, $path)->assertForbidden();
+        } else {
+            $this->call($method, $path)->assertRedirect(route('verification.notice'));
+        }
     }
 
     public function test_index_only_displays_owned_milestones_and_create_form_renders(): void
@@ -202,21 +217,57 @@ final class MilestoneTest extends TestCase
         $this->assertSame(1, $milestone->periods()->count());
     }
 
-    public function test_stop_start_and_reset_preserve_history_and_share_reset_timestamp(): void
+    public static function actionRequestTypes(): array
+    {
+        return ['regular form' => [false], 'AJAX' => [true]];
+    }
+
+    #[DataProvider('actionRequestTypes')]
+    public function test_stop_start_and_reset_preserve_history_and_share_reset_timestamp(bool $ajax): void
     {
         $this->travelTo(now()->setDate(2026, 10, 15)->setTime(12, 0));
         $user = User::factory()->create();
         $milestone = $this->milestone($user);
         $first = $milestone->currentPeriod;
-        $this->actingAs($user)->post(route('milestones.stop', $milestone))->assertRedirect('/');
+        $this->actingAs($user);
+        if ($ajax) {
+            $this->withHeaders(['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json']);
+        }
+
+        $assertResponse = function ($response, bool $active) use ($ajax, $milestone): void {
+            if (! $ajax) {
+                $response->assertRedirect('/');
+
+                return;
+            }
+
+            $response->assertOk()->assertViewIs('milestones._card')
+                ->assertHeader('Content-Type', 'text/html; charset=utf-8')
+                ->assertSee('data-milestone-id="'.$milestone->id.'"', false)
+                ->assertDontSee('<html', false)->assertDontSee('role="alert"', false);
+
+            if ($active) {
+                $response->assertSee('data-started-at="'.now()->toIso8601String().'"', false)
+                    ->assertSee('action="'.route('milestones.reset', $milestone).'"', false)
+                    ->assertSee('action="'.route('milestones.stop', $milestone).'"', false)
+                    ->assertDontSee('action="'.route('milestones.start', $milestone).'"', false);
+            } else {
+                $response->assertSee('Stopped')->assertDontSee('data-started-at=', false)
+                    ->assertSee('action="'.route('milestones.start', $milestone).'"', false)
+                    ->assertDontSee('action="'.route('milestones.reset', $milestone).'"', false)
+                    ->assertDontSee('action="'.route('milestones.stop', $milestone).'"', false);
+            }
+        };
+
+        $assertResponse($this->post(route('milestones.stop', $milestone)), false);
         $this->assertTrue($first->fresh()->finished_at->equalTo(now()));
         $this->assertNull($milestone->fresh()->currentPeriod);
         $this->travel(1)->minute();
-        $this->post(route('milestones.start', $milestone))->assertRedirect('/');
+        $assertResponse($this->post(route('milestones.start', $milestone)), true);
         $second = $milestone->fresh()->currentPeriod;
         $this->assertTrue($second->started_at->equalTo(now()));
         $this->travel(1)->minute();
-        $this->post(route('milestones.reset', $milestone))->assertRedirect('/');
+        $assertResponse($this->post(route('milestones.reset', $milestone)), true);
         $third = $milestone->fresh()->currentPeriod;
         $this->assertTrue($second->fresh()->finished_at->equalTo($third->started_at));
         $this->assertTrue($third->started_at->equalTo(now()));
@@ -248,15 +299,15 @@ final class MilestoneTest extends TestCase
 
     public static function ownedActions(): array
     {
-        return [['GET', 'edit'], ['GET', 'history'], ['PUT', 'update'], ['DELETE', 'destroy'], ['POST', 'start'], ['POST', 'stop'], ['POST', 'reset']];
+        return [['GET', 'edit'], ['GET', 'history'], ['PUT', 'update'], ['DELETE', 'destroy'], ['POST', 'start'], ['POST', 'stop'], ['POST', 'reset'], ['POST', 'start', true], ['POST', 'stop', true], ['POST', 'reset', true]];
     }
 
     #[DataProvider('ownedActions')]
-    public function test_other_users_cannot_read_or_change_milestone(string $method, string $action): void
+    public function test_other_users_cannot_read_or_change_milestone(string $method, string $action, bool $ajax = false): void
     {
         $milestone = $this->milestone(User::factory()->create());
         $original = $milestone->fresh()->getAttributes();
-        $this->actingAs(User::factory()->create())->call($method, route('milestones.'.$action, $milestone), $this->data())
+        $this->actingAs(User::factory()->create())->call($method, route('milestones.'.$action, $milestone), $this->data(), server: $ajax ? ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest', 'HTTP_ACCEPT' => 'application/json'] : [])
             ->assertForbidden();
         $this->assertSame($original, $milestone->fresh()->getAttributes());
         $this->assertSame(1, $milestone->periods()->count());
@@ -264,14 +315,14 @@ final class MilestoneTest extends TestCase
     }
 
     #[DataProvider('ownedActions')]
-    public function test_missing_milestones_return_not_found(string $method, string $action): void
+    public function test_missing_milestones_return_not_found(string $method, string $action, bool $ajax = false): void
     {
         $user = User::factory()->create();
         $milestone = $this->milestone($user);
         $id = $milestone->id;
         $milestone->delete();
 
-        $this->actingAs($user)->call($method, route('milestones.'.$action, $id), $this->data())
+        $this->actingAs($user)->call($method, route('milestones.'.$action, $id), $this->data(), server: $ajax ? ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest', 'HTTP_ACCEPT' => 'application/json'] : [])
             ->assertNotFound();
     }
 
@@ -298,5 +349,93 @@ final class MilestoneTest extends TestCase
         $this->get('/')->assertOk()->assertDontSee("Today's special dates");
         $milestone->periods()->update(['finished_at' => now()]);
         $this->get('/')->assertOk()->assertSee('Stopped')->assertDontSee('data-started-at=', false);
+    }
+
+    public static function invalidAjaxActions(): array
+    {
+        return [
+            ['start', true, 'Milestone already has a current period.'],
+            ['stop', false, 'Milestone does not have a current period.'],
+            ['reset', false, 'Milestone does not have a current period.'],
+        ];
+    }
+
+    #[DataProvider('invalidAjaxActions')]
+    public function test_invalid_ajax_action_returns_current_card_with_error_without_changing_periods(string $action, bool $active, string $message): void
+    {
+        $user = User::factory()->create();
+        $milestone = $this->milestone($user, $active);
+        $original = $milestone->periods()->first()->getAttributes();
+
+        $this->actingAs($user)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'])
+            ->post(route('milestones.'.$action, $milestone))
+            ->assertOk()->assertViewIs('milestones._card')
+            ->assertSee('data-milestone-id="'.$milestone->id.'"', false)
+            ->assertSee('role="alert"', false)->assertSee($message);
+
+        $this->assertSame(1, $milestone->periods()->count());
+        $this->assertSame($original, $milestone->periods()->first()->getAttributes());
+    }
+
+    public static function failedDatabaseActions(): array
+    {
+        return [['start', false], ['stop', true], ['reset', true]];
+    }
+
+    #[DataProvider('failedDatabaseActions')]
+    public function test_ajax_database_errors_are_reported_without_exposing_details(string $action, bool $active): void
+    {
+        config(['app.debug' => false]);
+        $user = User::factory()->create();
+        $milestone = $this->milestone($user, $active);
+        $original = $milestone->periods()->first()->getAttributes();
+        $exception = new QueryException('mariadb', 'update milestone_periods set finished_at = ?', ['2026-10-29 12:00:00'], new PDOException('Internal driver diagnostic'));
+        MilestonePeriod::saving(function () use ($exception): void {
+            throw $exception;
+        });
+        Exceptions::fake();
+
+        $this->actingAs($user)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'])
+            ->post(route('milestones.'.$action, $milestone))
+            ->assertOk()->assertViewIs('milestones._card')
+            ->assertSee('role="alert"', false)->assertSee('DB Error')
+            ->assertDontSee('Internal driver diagnostic')->assertDontSee('update milestone_periods');
+
+        Exceptions::assertReported(fn (QueryException $reported) => $reported === $exception);
+        $this->assertSame(1, $milestone->periods()->count());
+        $this->assertSame($original, $milestone->periods()->first()->getAttributes());
+    }
+
+    public function test_anniversaries_fragment_is_private_filtered_and_reflects_period_changes(): void
+    {
+        $this->travelTo(now()->setDate(2026, 1, 11)->setTime(12, 0));
+        $user = User::factory()->create();
+        $mine = $this->milestone($user);
+        $other = $this->milestone(User::factory()->create());
+        $other->update(['name' => 'Private anniversary']);
+        $stopped = $this->milestone($user, false);
+        $stopped->update(['name' => 'Stopped anniversary']);
+        $hidden = $this->milestone($user);
+        $hidden->update(['name' => 'Disabled anniversary', 'show_round_days' => false]);
+
+        $this->actingAs($user)->get(route('milestones.anniversaries'))->assertNotFound();
+        $this->withHeaders(['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'])
+            ->get(route('milestones.anniversaries'))
+            ->assertOk()->assertViewIs('milestones._today-anniversaries')
+            ->assertSee($mine->name)->assertSee('10 days')
+            ->assertDontSee($other->name)->assertDontSee($stopped->name)->assertDontSee($hidden->name)
+            ->assertDontSee('<html', false)->assertDontSee('data-milestone-id=', false);
+
+        $this->post(route('milestones.reset', $mine))->assertOk();
+        $this->get(route('milestones.anniversaries'))->assertOk()->assertContent('');
+
+        $this->travel(10)->days();
+        $this->get(route('milestones.anniversaries'))->assertOk()->assertSee($mine->name)->assertSee('10 days');
+        $this->post(route('milestones.stop', $mine))->assertOk();
+        $this->get(route('milestones.anniversaries'))->assertOk()->assertContent('');
+        $this->post(route('milestones.start', $mine))->assertOk();
+        $this->get(route('milestones.anniversaries'))->assertOk()->assertContent('');
     }
 }

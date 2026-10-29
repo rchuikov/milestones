@@ -10,6 +10,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/timer.js',
+                'resources/js/milestone-actions.js'
             ],
             refresh: true,
             fonts: [

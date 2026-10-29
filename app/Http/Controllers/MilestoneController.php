@@ -6,9 +6,13 @@ use App\Http\Requests\MilestoneRequest;
 use App\Models\Milestone;
 use App\Models\MilestonePeriod;
 use App\Services\MilestoneService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 
 final class MilestoneController extends Controller
 {
@@ -87,31 +91,119 @@ final class MilestoneController extends Controller
         return view('milestones.history', compact('milestone', 'periods'));
     }
 
-    public function start(Request $request, Milestone $milestone, MilestoneService $service): RedirectResponse
-    {
-        $this->ensureOwner($request, $milestone);
+    public function start(
+        Request $request,
+        Milestone $milestone,
+        MilestoneService $service,
+    ): Response|RedirectResponse {
+        if (! $request->ajax()) {
+            $this->ensureOwner($request, $milestone);
+            $service->start($milestone);
 
-        $service->start($milestone);
+            return redirect()->route('milestones.index');
+        }
 
-        return redirect()->route('milestones.index');
+        $error = null;
+        try {
+            $this->ensureOwner($request, $milestone);
+            $service->start($milestone);
+        } catch (HttpException $e) {
+            report($e);
+
+            return response('', $e->getStatusCode());
+        } catch (QueryException $e) {
+            report($e);
+            $error = 'DB Error';
+        } catch (Throwable $e) {
+            report($e);
+            $error = $e->getMessage();
+        }
+
+        return response()->view('milestones._card', [
+            'milestone' => $milestone->fresh(['currentPeriod']),
+            'error' => $error,
+        ]);
     }
 
-    public function stop(Request $request, Milestone $milestone, MilestoneService $service): RedirectResponse
-    {
-        $this->ensureOwner($request, $milestone);
+    public function stop(
+        Request $request,
+        Milestone $milestone,
+        MilestoneService $service,
+    ): Response|RedirectResponse {
+        if (! $request->ajax()) {
+            $this->ensureOwner($request, $milestone);
+            $service->stop($milestone);
 
-        $service->stop($milestone);
+            return redirect()->route('milestones.index');
+        }
 
-        return redirect()->route('milestones.index');
+        $error = null;
+        try {
+            $this->ensureOwner($request, $milestone);
+            $service->stop($milestone);
+        } catch (HttpException $e) {
+            report($e);
+
+            return response('', $e->getStatusCode());
+        } catch (QueryException $e) {
+            report($e);
+            $error = 'DB Error';
+        } catch (Throwable $e) {
+            report($e);
+            $error = $e->getMessage();
+        }
+
+        return response()->view('milestones._card', [
+            'milestone' => $milestone->fresh(['currentPeriod']),
+            'error' => $error,
+        ]);
     }
 
-    public function reset(Request $request, Milestone $milestone, MilestoneService $service): RedirectResponse
+    public function reset(
+        Request $request,
+        Milestone $milestone,
+        MilestoneService $service,
+    ): Response|RedirectResponse {
+        if (! $request->ajax()) {
+            $this->ensureOwner($request, $milestone);
+            $service->reset($milestone);
+
+            return redirect()->route('milestones.index');
+        }
+
+        $error = null;
+
+        try {
+            $this->ensureOwner($request, $milestone);
+            $service->reset($milestone);
+        } catch (HttpException $e) {
+            report($e);
+
+            return response('', $e->getStatusCode());
+        } catch (QueryException $e) {
+            report($e);
+            $error = 'DB Error';
+        } catch (Throwable $e) {
+            report($e);
+            $error = $e->getMessage();
+        }
+
+        return response()->view('milestones._card', [
+            'milestone' => $milestone->fresh(['currentPeriod']),
+            'error' => $error,
+        ]);
+    }
+
+    public function anniversaries(Request $request): View
     {
-        $this->ensureOwner($request, $milestone);
+        abort_unless($request->ajax(), 404);
 
-        $service->reset($milestone);
+        $milestones = $request->user()
+            ->milestones()
+            ->with('currentPeriod')
+            ->get();
 
-        return redirect()->route('milestones.index');
+        return view('milestones._today-anniversaries', compact('milestones'));
     }
 
     private function ensureOwner(Request $request, Milestone $milestone): void

@@ -7,3 +7,11 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+[data-milestone-id][data-busy] {
+    @apply cursor-not-allowed;
+}
+
+[data-milestone-id][data-busy] :is(button, a) {
+    @apply opacity-80 grayscale;
+}

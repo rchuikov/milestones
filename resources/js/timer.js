@@ -13,6 +13,8 @@ const locale = ['en', 'ru', 'sr-Latn'].includes(language)
 
 const timeZone = Temporal.Now.timeZoneId();
 
+const timers = new Map();
+
 function getCalendarDays(startedAt) {
     const start = Temporal.Instant.from(startedAt)
         .toZonedDateTimeISO(timeZone)
@@ -25,41 +27,69 @@ function getCalendarDays(startedAt) {
     }).days);
 }
 
-document.querySelectorAll('.milestone-timer').forEach(element => {
-    const container = element.parentElement;
-    const durationElement = container.querySelector('.milestone-duration');
-    const totalDaysElement = container.querySelector('.milestone-total-days');
+function initMilestoneTimers(root = document) {
+    root.querySelectorAll('.milestone-timer').forEach(element => {
+        if (timers.has(element)) {
+            return;
+        }
 
-    createTimer({
-        startedAt: element.dataset.startedAt,
-        timeZone,
-        onTick: duration => {
-            render(duration, '{time}', {
-                locale,
-                element,
-            });
+        const container = element.parentElement;
+        const durationElement = container.querySelector('.milestone-duration');
+        const totalDaysElement = container.querySelector('.milestone-total-days');
 
-            if (durationElement) {
-                render(duration, '{duration}', {
+        const timer = createTimer({
+            startedAt: element.dataset.startedAt,
+            timeZone,
+            onTick: duration => {
+                render(duration, '{time}', {
                     locale,
-                    element: durationElement,
+                    element,
                 });
 
-                durationElement.classList.toggle(
-                    'hidden',
-                    !durationElement.textContent.trim(),
-                );
-            }
+                if (durationElement) {
+                    render(duration, '{duration}', {
+                        locale,
+                        element: durationElement,
+                    });
 
-            if (totalDaysElement) {
-                const days = getCalendarDays(element.dataset.startedAt);
+                    durationElement.classList.toggle(
+                        'hidden',
+                        !durationElement.textContent.trim(),
+                    );
+                }
 
-                totalDaysElement.textContent =
-                    `(${formatUnit('day', days, locale)})`;
-            }
-        },
-    }).start();
-});
+                if (totalDaysElement) {
+                    const days = getCalendarDays(element.dataset.startedAt);
+
+                    totalDaysElement.textContent =
+                        `(${formatUnit('day', days, locale)})`;
+                }
+            },
+        });
+
+        timers.set(element, timer);
+        timer.start();
+    });
+}
+
+function disposeMilestoneTimers(root) {
+    root.querySelectorAll('.milestone-timer').forEach(element => {
+        const timer = timers.get(element);
+
+        if (timer) {
+            timer.dispose();
+            timers.delete(element);
+        }
+    });
+}
+
+export function refreshMilestoneTimer(oldCard, newCard) {
+    disposeMilestoneTimers(oldCard);
+    oldCard.replaceWith(newCard);
+    initMilestoneTimers(newCard);
+}
+
+initMilestoneTimers();
 
 let currentDate = Temporal.Now.plainDateISO(timeZone).toString();
 

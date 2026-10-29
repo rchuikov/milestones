@@ -56,6 +56,10 @@ Route::middleware('auth')->group(function () {
         ->name('verification.resend');
 });
 
+// Public error page
+Route::view('/error', 'error')
+    ->name('error');
+
 // Language selection
 Route::post('/locale', [AuthController::class, 'updateLocale'])
     ->name('locale.update');
@@ -88,6 +92,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('milestones.stop');
     Route::post('milestones/{milestone}/reset', [MilestoneController::class, 'reset'])
         ->name('milestones.reset');
+    Route::get('/milestones/anniversaries', [MilestoneController::class, 'anniversaries'])
+        ->name('milestones.anniversaries');
 
     // History
     Route::get('/milestones/{milestone}/history', [MilestoneController::class, 'history'])
