@@ -1,3 +1,10 @@
+@php
+    /**
+     * @var \App\Models\Milestone[] $milestones
+     * @var \Illuminate\Pagination\LengthAwarePaginator $milestones
+     */
+@endphp
+
 @extends('layouts.app')
 
 @section('page-title', __('My milestones'))
@@ -21,9 +28,15 @@
         data-url="{{ route('milestones.anniversaries') }}"
     >
         @include('milestones._today-anniversaries', [
-            'milestones' => $milestones,
+            'milestones' => $anniversaryMilestones,
         ])
     </div>
+
+    @if ($milestones->total() > 0)
+        <div class="milestones-pagination mb-1 flex justify-end pr-2">
+            <x-advanced-pagination :paginator="$milestones" section="summary" />
+        </div>
+    @endif
 
     <div class="space-y-4">
         @forelse ($milestones as $milestone)
@@ -50,6 +63,11 @@
             </div>
         @endforelse
     </div>
+
+    <div class="milestones-pagination mt-4 px-2">
+        <x-advanced-pagination :paginator="$milestones" />
+    </div>
+
 @endsection
 
 @push('scripts')

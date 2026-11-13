@@ -5,7 +5,7 @@
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
 [data-milestone-id][data-busy] {
@@ -14,4 +14,38 @@
 
 [data-milestone-id][data-busy] :is(button, a) {
     @apply opacity-80 grayscale;
+}
+
+/* MyMilestones pagination */
+
+.milestones-pagination .r-pagination-size-label {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.milestones-pagination .r-pagination-size select {
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.milestones-pagination .r-pagination-summary {
+    color: #374151;
+    font-size: 14px;
+}
+
+.milestones-pagination .r-pagination-navigation a,
+.milestones-pagination .r-pagination-navigation span {
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.milestones-pagination .r-pagination-navigation [aria-current="page"] {
+    background: #d1d5db;
+    border-color: #c4c9d1;
+    color: #656b74;
+}
+
+.milestones-pagination .r-pagination-navigation [aria-disabled="true"] {
+    background: #f3f4f6;
+    border-color: #d1d5db;
 }

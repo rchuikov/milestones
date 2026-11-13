@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "dad6045051fb1e9cad9ff7d24276f0a7",
+    "content-hash": "735a7c1775e5b1db5eb5ea94ae5023f6",
     "packages": [
         {
             "name": "blade-ui-kit/blade-heroicons",
@@ -3829,6 +3829,54 @@
                 "source": "https://github.com/ramsey/uuid/tree/4.9.4"
             },
             "time": "2026-09-16T11:39:30+00:00"
+        },
+        {
+            "name": "rchuikov/laravel-advanced-pagination",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/rchuikov/laravel-advanced-pagination.git",
+                "reference": "3b314c76a58389bb945e854c90050f780cc5f6f5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/rchuikov/laravel-advanced-pagination/zipball/3b314c76a58389bb945e854c90050f780cc5f6f5",
+                "reference": "3b314c76a58389bb945e854c90050f780cc5f6f5",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/pagination": "^13.0",
+                "illuminate/support": "^13.0",
+                "illuminate/view": "^13.0",
+                "php": "^8.5"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^11.0",
+                "phpunit/phpunit": "^12.5"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "RChuikov\\LaravelAdvancedPagination\\PaginationServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "RChuikov\\LaravelAdvancedPagination\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Configurable pagination for Laravel.",
+            "support": {
+                "issues": "https://github.com/rchuikov/laravel-advanced-pagination/issues",
+                "source": "https://github.com/rchuikov/laravel-advanced-pagination/tree/v1.0.0"
+            },
+            "time": "2026-11-13T08:33:07+00:00"
         },
         {
             "name": "symfony/clock",

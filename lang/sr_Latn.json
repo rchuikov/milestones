@@ -343,5 +343,6 @@
     "User menu": "Korisnički meni",
     "Summary": "Pregled",
     "Total across all periods": "Ukupno za sve periode",
-    "Periods": "Periodi"
+    "Periods": "Periodi",
+    "Records :from–:to of :total": "Zapisi :from–:to od ukupno :total"
 }

@@ -71,6 +71,40 @@ final class MilestoneTest extends TestCase
         $this->get('/milestones/create')->assertOk()->assertSee('Create milestone');
     }
 
+    public function test_index_paginates_only_owned_milestones(): void
+    {
+        $user = User::factory()->create();
+
+        for ($i = 1; $i <= 25; $i++) {
+            $user->milestones()->create([
+                'name' => "Milestone $i",
+            ]);
+        }
+
+        User::factory()->create()
+            ->milestones()
+            ->create(['name' => 'Someone else milestone']);
+
+        $this->actingAs($user);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Milestone 1')
+            ->assertSee('Milestone 20')
+            ->assertDontSee('Milestone 21')
+            ->assertDontSee('Someone else milestone');
+
+        $this->get('/?page=2')
+            ->assertOk()
+            ->assertSee('Milestone 21')
+            ->assertSee('Milestone 25')
+            ->assertDontSee('Milestone 20')
+            ->assertDontSee('Someone else milestone');
+
+        $this->get('/?page=3&per_page=20')
+            ->assertRedirect('/?per_page=20&page=2');
+    }
+
     public function test_create_persists_owner_initial_period_color_and_normalized_checkboxes(): void
     {
         $user = User::factory()->create();
@@ -437,5 +471,32 @@ final class MilestoneTest extends TestCase
         $this->get(route('milestones.anniversaries'))->assertOk()->assertContent('');
         $this->post(route('milestones.start', $mine))->assertOk();
         $this->get(route('milestones.anniversaries'))->assertOk()->assertContent('');
+    }
+
+    public function test_anniversaries_are_not_limited_to_current_page(): void
+    {
+        $this->travelTo(now()->setDate(2026, 1, 11)->setTime(12, 0));
+
+        $user = User::factory()->create();
+
+        for ($i = 1; $i <= 20; $i++) {
+            $user->milestones()->create([
+                'name' => "Milestone $i",
+            ]);
+        }
+
+        $anniversary = $this->milestone($user);
+        $anniversary->update(['name' => 'Anniversary from page two']);
+
+        $this->actingAs($user)
+            ->get('/')
+            ->assertOk()
+            ->assertSee('Anniversary from page two')
+            ->assertSee('10 days')
+            ->assertSee('Today\'s special dates')
+            ->assertDontSee(
+                'data-milestone-id="'.$anniversary->id.'"',
+                false,
+            );
     }
 }

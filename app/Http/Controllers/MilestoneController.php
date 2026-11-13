@@ -16,14 +16,26 @@ use Throwable;
 
 final class MilestoneController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
-        $milestones = $request->user()
+        $query = $request->user()
             ->milestones()
-            ->with('currentPeriod')
-            ->get();
+            ->with('currentPeriod');
 
-        return view('milestones.index', compact('milestones'));
+        $milestones = (clone $query)
+            ->orderBy('id')
+            ->advancedPaginate();
+
+        if ($milestones->total() > 0 && $milestones->currentPage() > $milestones->lastPage()) {
+            return redirect()->to($milestones->url($milestones->lastPage()));
+        }
+
+        $anniversaryMilestones = $query->get();
+
+        return view('milestones.index', compact(
+            'milestones',
+            'anniversaryMilestones',
+        ));
     }
 
     public function create(): View
